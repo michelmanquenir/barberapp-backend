@@ -1,0 +1,33 @@
+
+> Task :compileJava FAILED
+D:\programacion\barber\barberiapp-backend\src\main\java\cl\barberiapp_backend\BarberiappBackendApplication.java:6: error: package org.springframework.boot.autoconfigure.domain does not exist
+import org.springframework.boot.autoconfigure.domain.EntityScan;
+                                                    ^
+D:\programacion\barber\barberiapp-backend\src\main\java\cl\barberiapp_backend\BarberiappBackendApplication.java:11: error: cannot find symbol
+@EntityScan(basePackages = "barberiapp.model")
+ ^
+  symbol: class EntityScan
+2 errors
+
+[Incubating] Problems report is available at: file:///D:/programacion/barber/barberiapp-backend/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':compileJava'.
+> Compilation failed; see the compiler output below.
+  D:\programacion\barber\barberiapp-backend\src\main\java\cl\barberiapp_backend\BarberiappBackendApplication.java:11: error: cannot find symbol
+  @EntityScan(basePackages = "barberiapp.model")
+   ^
+    symbol: class EntityScan
+  D:\programacion\barber\barberiapp-backend\src\main\java\cl\barberiapp_backend\BarberiappBackendApplication.java:6: error: package org.springframework.boot.autoconfigure.domain does not exist
+  import org.springframework.boot.autoconfigure.domain.EntityScan;
+                                                      ^
+  2 errors
+
+* Try:
+> Check your code and dependencies to fix the compilation error(s)
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+
+BUILD FAILED in 1s
+1 actionable task: 1 executed
