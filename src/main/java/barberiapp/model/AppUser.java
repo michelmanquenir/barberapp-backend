@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 
 import java.time.LocalDateTime;
 
@@ -12,17 +13,22 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class AppUser {
 
     @Id
     @Column(nullable = false, unique = true, length = 36)
-    private String id; // Usually UUID from Supabase Auth
+    private String id;
 
     @Column(nullable = false, unique = true)
     private String email;
 
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserRole role;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;

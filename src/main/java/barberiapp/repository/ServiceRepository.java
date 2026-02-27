@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface ServiceRepository extends JpaRepository<ServiceEntity, Long> {
     List<ServiceEntity> findByActiveTrue();
+
+    List<ServiceEntity> findByActiveTrueOrActiveIsNull();
 }

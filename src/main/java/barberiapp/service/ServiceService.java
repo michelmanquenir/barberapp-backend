@@ -14,6 +14,6 @@ public class ServiceService {
     private final ServiceRepository serviceRepository;
 
     public List<ServiceEntity> getActiveServices() {
-        return serviceRepository.findByActiveTrue();
+        return serviceRepository.findByActiveTrueOrActiveIsNull();
     }
 }

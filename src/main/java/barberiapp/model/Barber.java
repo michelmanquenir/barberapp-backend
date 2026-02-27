@@ -35,6 +35,9 @@ public class Barber {
 
     private Boolean active = true;
 
+    @Column(name = "user_id")
+    private String userId;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
