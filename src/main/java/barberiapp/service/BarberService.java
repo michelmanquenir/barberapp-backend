@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +25,19 @@ public class BarberService {
         return memberRepository.findByShopIdAndActiveTrue(shopId).stream()
                 .map(BarberShopMember::getBarber)
                 .toList();
+    }
+
+    /** Obtiene el perfil de barbero vinculado al userId del login */
+    public Optional<Barber> getMyProfile(String userId) {
+        return barberRepository.findByUserId(userId);
+    }
+
+    /** Busca barberos registrados por nombre */
+    public List<Barber> searchBarbers(String query) {
+        if (query == null || query.isBlank()) {
+            return barberRepository.findByActiveTrue();
+        }
+        return barberRepository.findByNameContainingIgnoreCaseAndActiveTrue(query);
     }
 
     public Barber createBarberProfile(String userId, String name, String bio, String imageUrl) {

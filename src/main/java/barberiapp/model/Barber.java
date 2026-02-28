@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 
@@ -30,8 +32,9 @@ public class Barber {
     @Column(precision = 10)
     private Double rating;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "JSON")
-    private String specialties; // Or map it properly if needed, depending on Postgres dialect support for JSON
+    private String specialties;
 
     private Boolean active = true;
 

@@ -28,6 +28,21 @@ public class BarberController {
         return barberService.getActiveBarbers();
     }
 
+    /** GET /api/barbers/me — perfil del barbero autenticado */
+    @GetMapping("/me")
+    public ResponseEntity<Barber> getMyProfile() {
+        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
+        return barberService.getMyProfile(userId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    /** GET /api/barbers/search?q= — buscar barberos registrados por nombre */
+    @GetMapping("/search")
+    public List<Barber> searchBarbers(@RequestParam(defaultValue = "") String q) {
+        return barberService.searchBarbers(q);
+    }
+
     /** POST /api/barbers — crear perfil de barbero (autenticado) */
     @PostMapping
     public ResponseEntity<Barber> createBarber(@RequestBody CreateBarberRequest req) {

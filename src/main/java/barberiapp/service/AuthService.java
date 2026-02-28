@@ -4,6 +4,7 @@ import barberiapp.dto.AuthResponse;
 import barberiapp.dto.LoginRequest;
 import barberiapp.dto.RegisterRequest;
 import barberiapp.model.AppUser;
+import barberiapp.model.Barber;
 import barberiapp.model.Profile;
 import barberiapp.model.UserRole;
 import barberiapp.repository.AppUserRepository;
@@ -64,6 +65,15 @@ public class AuthService {
         profile.setFullName(req.getFullName());
         // persist() evita que Spring Data JPA llame a merge(), que rompe @MapsId en Hibernate 7
         entityManager.persist(profile);
+
+        // Si se registra como BARBER, crear automáticamente su perfil de barbero
+        if (role == UserRole.BARBER) {
+            Barber barber = new Barber();
+            barber.setName(req.getFullName());
+            barber.setUserId(id);
+            barber.setActive(true);
+            entityManager.persist(barber);
+        }
 
         String token = jwtUtil.generateToken(user);
         return new AuthResponse(token, id, user.getEmail(), role.name(), req.getFullName());
