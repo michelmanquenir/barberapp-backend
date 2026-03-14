@@ -28,12 +28,40 @@ public class BarberShopController {
         return ResponseEntity.ok(barberShopService.getShopsByOwner(userId));
     }
 
+    /** GET /api/shops — listar todos los negocios activos (público) */
+    @GetMapping
+    public List<BarberShopResponse> getAllShops() {
+        return barberShopService.getAllActiveShops();
+    }
+
     /** POST /api/shops — crear negocio */
     @PostMapping
     public ResponseEntity<?> createShop(@RequestBody CreateShopRequest req) {
         try {
             String userId = getCurrentUserId();
             BarberShopResponse response = barberShopService.createShop(userId, req);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /** GET /api/shops/id/{shopId} — obtener negocio por ID (para edición) */
+    @GetMapping("/id/{shopId}")
+    public ResponseEntity<?> getShopById(@PathVariable String shopId) {
+        try {
+            return ResponseEntity.ok(barberShopService.getShopById(shopId));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    /** PUT /api/shops/{shopId} — actualizar negocio */
+    @PutMapping("/{shopId}")
+    public ResponseEntity<?> updateShop(@PathVariable String shopId, @RequestBody CreateShopRequest req) {
+        try {
+            String userId = getCurrentUserId();
+            BarberShopResponse response = barberShopService.updateShop(shopId, userId, req);
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

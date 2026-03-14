@@ -31,6 +31,12 @@ public class Profile {
     private String address;
     private LocalDate birthdate;
 
+    @Column(name = "avatar_url", columnDefinition = "TEXT")
+    private String avatarUrl;
+
+    @Column(name = "dni_url", columnDefinition = "TEXT")
+    private String dniUrl;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

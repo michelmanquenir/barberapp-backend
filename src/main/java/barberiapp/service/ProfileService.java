@@ -23,6 +23,12 @@ public class ProfileService {
         existingProfile.setPhone(updateData.getPhone());
         existingProfile.setAddress(updateData.getAddress());
         existingProfile.setBirthdate(updateData.getBirthdate());
+        if (updateData.getAvatarUrl() != null) {
+            existingProfile.setAvatarUrl(updateData.getAvatarUrl());
+        }
+        if (updateData.getDniUrl() != null) {
+            existingProfile.setDniUrl(updateData.getDniUrl());
+        }
 
         return profileRepository.save(existingProfile);
     }

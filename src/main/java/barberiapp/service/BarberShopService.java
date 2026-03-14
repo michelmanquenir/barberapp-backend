@@ -3,6 +3,7 @@ package barberiapp.service;
 import barberiapp.dto.BarberShopResponse;
 import barberiapp.dto.CreateShopRequest;
 import barberiapp.model.*;
+import barberiapp.model.ApprovalStatus;
 import barberiapp.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,15 +18,21 @@ public class BarberShopService {
     private final BarberShopMemberRepository memberRepository;
     private final AppUserRepository userRepository;
     private final BarberRepository barberRepository;
+    private final ProfileRepository profileRepository;
+    private final EmailService emailService;
 
     public BarberShopService(BarberShopRepository shopRepository,
                              BarberShopMemberRepository memberRepository,
                              AppUserRepository userRepository,
-                             BarberRepository barberRepository) {
+                             BarberRepository barberRepository,
+                             ProfileRepository profileRepository,
+                             EmailService emailService) {
         this.shopRepository = shopRepository;
         this.memberRepository = memberRepository;
         this.userRepository = userRepository;
         this.barberRepository = barberRepository;
+        this.profileRepository = profileRepository;
+        this.emailService = emailService;
     }
 
     @Transactional
@@ -43,10 +50,23 @@ public class BarberShopService {
                 .description(req.getDescription())
                 .owner(owner)
                 .slug(req.getSlug())
+                .address(req.getAddress())
+                .latitude(req.getLatitude())
+                .longitude(req.getLongitude())
                 .active(true)
+                .homeServiceEnabled(Boolean.TRUE.equals(req.getHomeServiceEnabled()))
+                .pricePerKm(req.getPricePerKm() != null ? req.getPricePerKm() : 0)
+                .categoryId(req.getCategoryId())
                 .build();
 
         shopRepository.save(shop);
+
+        // Notificar al propietario que su negocio está en revisión (async)
+        String ownerName = profileRepository.findById(ownerId)
+                .map(p -> p.getFullName())
+                .orElse(owner.getEmail());
+        emailService.sendShopPending(owner.getEmail(), ownerName, shop.getName());
+
         return toResponse(shop, List.of());
     }
 
@@ -80,8 +100,19 @@ public class BarberShopService {
         if (!shop.getOwner().getId().equals(requesterId)) {
             throw new IllegalArgumentException("No tienes permiso para modificar este negocio");
         }
-        if (memberRepository.existsByShopIdAndBarberId(shopId, barberId)) {
-            throw new IllegalArgumentException("El barbero ya pertenece a este negocio");
+
+        // Buscar si ya existe un registro activo o inactivo
+        java.util.Optional<BarberShopMember> existing =
+                memberRepository.findByShopIdAndBarberId(shopId, barberId);
+
+        if (existing.isPresent()) {
+            if (existing.get().getActive()) {
+                throw new IllegalArgumentException("El barbero ya pertenece a este negocio");
+            }
+            // Registro inactivo (fue quitado antes): reactivar en vez de crear uno nuevo
+            existing.get().setActive(true);
+            memberRepository.save(existing.get());
+            return;
         }
 
         Barber barber = barberRepository.findById(barberId)
@@ -113,6 +144,50 @@ public class BarberShopService {
                 });
     }
 
+    public BarberShopResponse getShopById(String shopId) {
+        BarberShop shop = shopRepository.findById(shopId)
+                .orElseThrow(() -> new IllegalArgumentException("Negocio no encontrado"));
+        List<Barber> barbers = getBarbersByShop(shop.getId());
+        return toResponse(shop, barbers);
+    }
+
+    @Transactional
+    public BarberShopResponse updateShop(String shopId, String ownerId, CreateShopRequest req) {
+        BarberShop shop = shopRepository.findById(shopId)
+                .orElseThrow(() -> new IllegalArgumentException("Negocio no encontrado"));
+
+        if (!shop.getOwner().getId().equals(ownerId)) {
+            throw new IllegalArgumentException("No tienes permiso para modificar este negocio");
+        }
+
+        // Validar slug único (excluyendo el shop actual)
+        shopRepository.findBySlug(req.getSlug()).ifPresent(existing -> {
+            if (!existing.getId().equals(shopId)) {
+                throw new IllegalArgumentException("El slug '" + req.getSlug() + "' ya está en uso");
+            }
+        });
+
+        shop.setName(req.getName());
+        shop.setDescription(req.getDescription());
+        shop.setSlug(req.getSlug());
+        shop.setAddress(req.getAddress());
+        shop.setLatitude(req.getLatitude());
+        shop.setLongitude(req.getLongitude());
+        shop.setHomeServiceEnabled(Boolean.TRUE.equals(req.getHomeServiceEnabled()));
+        shop.setPricePerKm(req.getPricePerKm() != null ? req.getPricePerKm() : 0);
+        shop.setCategoryId(req.getCategoryId());
+
+        shopRepository.save(shop);
+        List<Barber> barbers = getBarbersByShop(shop.getId());
+        return toResponse(shop, barbers);
+    }
+
+    public List<BarberShopResponse> getAllActiveShops() {
+        return shopRepository.findPublicApproved(ApprovalStatus.ACTIVE).stream()
+                .map(shop -> toResponse(shop, getBarbersByShop(shop.getId())))
+                .toList();
+    }
+
     private BarberShopResponse toResponse(BarberShop shop, List<Barber> barbers) {
         return new BarberShopResponse(
                 shop.getId(),
@@ -120,7 +195,14 @@ public class BarberShopService {
                 shop.getDescription(),
                 shop.getSlug(),
                 shop.getActive(),
-                barbers
+                shop.getAddress(),
+                shop.getLatitude(),
+                shop.getLongitude(),
+                barbers,
+                shop.getHomeServiceEnabled(),
+                shop.getPricePerKm(),
+                shop.getApprovalStatus() != null ? shop.getApprovalStatus().name() : "ACTIVE",
+                shop.getCategoryId()
         );
     }
 }

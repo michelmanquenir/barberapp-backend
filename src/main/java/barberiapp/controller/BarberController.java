@@ -8,6 +8,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/barbers")
@@ -41,6 +42,16 @@ public class BarberController {
     @GetMapping("/search")
     public List<Barber> searchBarbers(@RequestParam(defaultValue = "") String q) {
         return barberService.searchBarbers(q);
+    }
+
+    /** PATCH /api/barbers/me/image — actualizar imagen del barbero autenticado */
+    @PatchMapping("/me/image")
+    public ResponseEntity<Barber> updateMyImage(@RequestBody Map<String, String> body) {
+        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
+        String imageUrl = body.get("imageUrl");
+        return barberService.updateBarberImage(userId, imageUrl)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     /** POST /api/barbers — crear perfil de barbero (autenticado) */

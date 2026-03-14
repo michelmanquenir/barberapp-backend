@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.time.LocalDateTime;
 
@@ -31,6 +32,12 @@ public class ServiceEntity {
     private Integer durationMinutes;
 
     private Boolean active = true;
+
+    /** Relación con la barbería dueña del servicio (null = servicio global legacy) */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "shop_id")
+    @JsonIgnore
+    private BarberShop shop;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;

@@ -7,6 +7,7 @@ import barberiapp.model.AppUser;
 import barberiapp.model.Barber;
 import barberiapp.model.Profile;
 import barberiapp.model.UserRole;
+import barberiapp.model.UserStatus;
 import barberiapp.repository.AppUserRepository;
 import barberiapp.repository.ProfileRepository;
 import barberiapp.security.JwtUtil;
@@ -25,6 +26,7 @@ public class AuthService {
     private final ProfileRepository profileRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final EmailService emailService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -32,17 +34,29 @@ public class AuthService {
     public AuthService(AppUserRepository appUserRepository,
                        ProfileRepository profileRepository,
                        PasswordEncoder passwordEncoder,
-                       JwtUtil jwtUtil) {
+                       JwtUtil jwtUtil,
+                       EmailService emailService) {
         this.appUserRepository = appUserRepository;
         this.profileRepository = profileRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
+        this.emailService = emailService;
     }
 
     @Transactional
     public AuthResponse register(RegisterRequest req) {
+        // ── Validaciones de unicidad ────────────────────────────────────────────
         if (appUserRepository.findByEmail(req.getEmail()).isPresent()) {
-            throw new IllegalArgumentException("El email ya está registrado");
+            throw new IllegalArgumentException("El correo electrónico ya está registrado");
+        }
+
+        // RUT: requerido y único
+        if (req.getRut() == null || req.getRut().isBlank()) {
+            throw new IllegalArgumentException("El RUT es requerido");
+        }
+        String normalizedRut = req.getRut().trim().toUpperCase();
+        if (appUserRepository.existsByRut(normalizedRut)) {
+            throw new IllegalArgumentException("El RUT ya está registrado en otra cuenta");
         }
 
         UserRole role = UserRole.valueOf(req.getRole().toUpperCase());
@@ -51,6 +65,7 @@ public class AuthService {
         AppUser user = AppUser.builder()
                 .id(id)
                 .email(req.getEmail())
+                .rut(normalizedRut)
                 .passwordHash(passwordEncoder.encode(req.getPassword()))
                 .role(role)
                 .build();
@@ -66,8 +81,8 @@ public class AuthService {
         // persist() evita que Spring Data JPA llame a merge(), que rompe @MapsId en Hibernate 7
         entityManager.persist(profile);
 
-        // Si se registra como BARBER, crear automáticamente su perfil de barbero
-        if (role == UserRole.BARBER) {
+        // Si se registra como BUSINESS_OWNER, crear automáticamente su perfil de barbero
+        if (role == UserRole.BUSINESS_OWNER) {
             Barber barber = new Barber();
             barber.setName(req.getFullName());
             barber.setUserId(id);
@@ -76,7 +91,15 @@ public class AuthService {
         }
 
         String token = jwtUtil.generateToken(user);
-        return new AuthResponse(token, id, user.getEmail(), role.name(), req.getFullName());
+        UserStatus status = user.getStatus() != null ? user.getStatus() : UserStatus.PENDING;
+
+        // Enviar email de bienvenida al nuevo usuario (async, no bloquea)
+        emailService.sendWelcomeEmail(user.getEmail(), req.getFullName(), role.name());
+
+        // Notificar al super admin que hay un nuevo usuario pendiente de aprobación
+        emailService.sendNewUserRegisteredToAdmin(req.getFullName(), user.getEmail(), role.name());
+
+        return new AuthResponse(token, id, user.getEmail(), role.name(), req.getFullName(), null, status.name());
     }
 
     public AuthResponse login(LoginRequest req) {
@@ -87,11 +110,12 @@ public class AuthService {
             throw new IllegalArgumentException("Credenciales incorrectas");
         }
 
-        String fullName = profileRepository.findById(user.getId())
-                .map(Profile::getFullName)
-                .orElse("");
+        Profile profile = profileRepository.findById(user.getId()).orElse(null);
+        String fullName  = profile != null ? profile.getFullName()  : "";
+        String avatarUrl = profile != null ? profile.getAvatarUrl() : null;
+        UserStatus status = user.getStatus() != null ? user.getStatus() : UserStatus.PENDING;
 
         String token = jwtUtil.generateToken(user);
-        return new AuthResponse(token, user.getId(), user.getEmail(), user.getRole().name(), fullName);
+        return new AuthResponse(token, user.getId(), user.getEmail(), user.getRole().name(), fullName, avatarUrl, status.name());
     }
 }

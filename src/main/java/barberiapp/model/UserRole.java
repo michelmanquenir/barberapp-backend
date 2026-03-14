@@ -2,5 +2,6 @@ package barberiapp.model;
 
 public enum UserRole {
     CLIENT,
-    BARBER
+    BUSINESS_OWNER,
+    SUPER_ADMIN
 }

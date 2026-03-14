@@ -16,5 +16,12 @@ public class BarberShopResponse {
     private String description;
     private String slug;
     private Boolean active;
+    private String address;
+    private Double latitude;
+    private Double longitude;
     private List<Barber> barbers;
+    private Boolean homeServiceEnabled;
+    private Integer pricePerKm;
+    private String approvalStatus;
+    private String categoryId;
 }

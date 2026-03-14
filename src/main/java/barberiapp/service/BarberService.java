@@ -40,6 +40,14 @@ public class BarberService {
         return barberRepository.findByNameContainingIgnoreCaseAndActiveTrue(query);
     }
 
+    /** Actualiza la imagen del barbero autenticado */
+    public Optional<Barber> updateBarberImage(String userId, String imageUrl) {
+        return barberRepository.findByUserId(userId).map(barber -> {
+            barber.setImageUrl(imageUrl);
+            return barberRepository.save(barber);
+        });
+    }
+
     public Barber createBarberProfile(String userId, String name, String bio, String imageUrl) {
         Barber barber = new Barber();
         barber.setName(name);

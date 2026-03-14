@@ -2,8 +2,12 @@ package barberiapp.repository;
 
 import barberiapp.model.Appointment;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 @Repository
@@ -11,4 +15,41 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     List<Appointment> findByUserIdOrderByDateDescTimeDesc(String userId);
 
     List<Appointment> findByUserIdAndStatusOrderByDateDescTimeDesc(String userId, String status);
+
+    /**
+     * Citas de un negocio: incluye las que tienen shopId asignado
+     * Y las antiguas (shopId null) cuyos barberos pertenecen al negocio.
+     * Evita duplicados con DISTINCT.
+     */
+    @Query("SELECT DISTINCT a FROM Appointment a " +
+           "WHERE a.shopId = :shopId " +
+           "   OR (a.shopId IS NULL AND a.barber.id IN :barberIds) " +
+           "ORDER BY a.date DESC, a.time DESC")
+    List<Appointment> findByShopOrLegacyBarbers(
+            @Param("shopId") String shopId,
+            @Param("barberIds") List<Long> barberIds);
+
+    /** Todas las citas de un conjunto de barberos */
+    List<Appointment> findByBarberIdInOrderByDateDescTimeDesc(List<Long> barberIds);
+
+    /** Retorna los IDs de barberos que ya tienen cita (no cancelada) en una fecha y hora dadas (exacto) */
+    @Query("SELECT a.barber.id FROM Appointment a " +
+           "WHERE a.barber.id IN :barberIds " +
+           "AND a.date = :date " +
+           "AND a.time = :time " +
+           "AND a.status != 'cancelled'")
+    List<Long> findBookedBarberIds(
+            @Param("barberIds") List<Long> barberIds,
+            @Param("date") LocalDate date,
+            @Param("time") LocalTime time
+    );
+
+    /** Todas las citas no canceladas de un conjunto de barberos en un día dado (para chequeo de solapamiento) */
+    List<Appointment> findByBarberIdInAndDateAndStatusNot(List<Long> barberIds, LocalDate date, String status);
+
+    /**
+     * Todas las citas no canceladas de UN barbero en una fecha dada.
+     * Usado para detección de conflictos entre negocios.
+     */
+    List<Appointment> findByBarberIdAndDateAndStatusNot(Long barberId, LocalDate date, String status);
 }

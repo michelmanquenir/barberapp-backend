@@ -35,3 +35,9 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Secrets — NUNCA subir a git ###
+.env
+.env.local
+.env.*.local
+src/main/resources/application-local.properties
