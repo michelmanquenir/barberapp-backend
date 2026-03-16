@@ -3,7 +3,9 @@ package barberiapp.service;
 import barberiapp.dto.ShopProductRequest;
 import barberiapp.dto.ShopProductResponse;
 import barberiapp.model.ApprovalStatus;
+import barberiapp.model.BarberShop;
 import barberiapp.model.Product;
+import barberiapp.repository.BarberShopRepository;
 import barberiapp.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -16,6 +18,7 @@ import java.util.List;
 public class ProductService {
 
     private final ProductRepository productRepository;
+    private final BarberShopRepository shopRepository;
 
     // ── Consultas ───────────────────────────────────────────────────────────────
 
@@ -39,6 +42,17 @@ public class ProductService {
 
     @Transactional
     public ShopProductResponse createProduct(String shopId, ShopProductRequest req) {
+        // El negocio debe estar aprobado antes de poder agregar productos
+        BarberShop shop = shopRepository.findById(shopId)
+                .orElseThrow(() -> new IllegalArgumentException("Negocio no encontrado"));
+
+        if (shop.getApprovalStatus() == ApprovalStatus.PENDING) {
+            throw new IllegalArgumentException("El negocio está pendiente de aprobación. El administrador debe aprobarlo antes de agregar productos.");
+        }
+        if (shop.getApprovalStatus() == ApprovalStatus.REJECTED) {
+            throw new IllegalArgumentException("El negocio ha sido rechazado. No puedes agregar productos.");
+        }
+
         if (req.getName() == null || req.getName().isBlank())
             throw new IllegalArgumentException("El nombre es requerido");
         if (req.getSalePrice() == null || req.getSalePrice() < 0)

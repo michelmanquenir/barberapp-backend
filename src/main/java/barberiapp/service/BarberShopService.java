@@ -40,6 +40,14 @@ public class BarberShopService {
         AppUser owner = userRepository.findById(ownerId)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
 
+        // El usuario debe estar aprobado antes de poder crear un negocio
+        if (owner.getStatus() == UserStatus.PENDING) {
+            throw new IllegalArgumentException("Tu cuenta está pendiente de aprobación. El administrador debe aprobarla antes de que puedas crear un negocio.");
+        }
+        if (owner.getStatus() == UserStatus.REJECTED) {
+            throw new IllegalArgumentException("Tu cuenta ha sido rechazada. No puedes crear negocios.");
+        }
+
         if (shopRepository.findBySlug(req.getSlug()).isPresent()) {
             throw new IllegalArgumentException("El slug '" + req.getSlug() + "' ya está en uso");
         }

@@ -1,6 +1,7 @@
 package barberiapp.service;
 
 import barberiapp.dto.CreateServiceRequest;
+import barberiapp.model.ApprovalStatus;
 import barberiapp.model.BarberShop;
 import barberiapp.model.ServiceEntity;
 import barberiapp.repository.BarberShopRepository;
@@ -36,6 +37,13 @@ public class ServiceService {
 
         if (!shop.getOwner().getId().equals(ownerId)) {
             throw new IllegalArgumentException("No tienes permiso para modificar este negocio");
+        }
+
+        if (shop.getApprovalStatus() == ApprovalStatus.PENDING) {
+            throw new IllegalArgumentException("El negocio está pendiente de aprobación. El administrador debe aprobarlo antes de agregar servicios.");
+        }
+        if (shop.getApprovalStatus() == ApprovalStatus.REJECTED) {
+            throw new IllegalArgumentException("El negocio ha sido rechazado. No puedes agregar servicios.");
         }
 
         ServiceEntity service = new ServiceEntity();
