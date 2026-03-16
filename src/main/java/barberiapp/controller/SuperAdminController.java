@@ -11,6 +11,7 @@ import barberiapp.service.EmailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Comparator;
@@ -74,6 +75,7 @@ public class SuperAdminController {
 
     // ─── Negocios ─────────────────────────────────────────────────────────────
 
+    @Transactional(readOnly = true)
     @GetMapping("/shops")
     public List<Map<String, Object>> listShops() {
         return shopRepository.findAll().stream()
@@ -81,6 +83,7 @@ public class SuperAdminController {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     @GetMapping("/shops/status/{status}")
     public List<Map<String, Object>> listShopsByStatus(@PathVariable String status) {
         ApprovalStatus approvalStatus = ApprovalStatus.valueOf(status.toUpperCase());
@@ -93,6 +96,7 @@ public class SuperAdminController {
                 .collect(Collectors.toList());
     }
 
+    @Transactional
     @PutMapping("/shops/{shopId}/approve")
     public ResponseEntity<Map<String, String>> approveShop(@PathVariable String shopId) {
         BarberShop shop = shopRepository.findById(shopId)
@@ -105,6 +109,7 @@ public class SuperAdminController {
         return ResponseEntity.ok(Map.of("approvalStatus", "ACTIVE", "shopId", shopId));
     }
 
+    @Transactional
     @PutMapping("/shops/{shopId}/reject")
     public ResponseEntity<Map<String, String>> rejectShop(@PathVariable String shopId) {
         BarberShop shop = shopRepository.findById(shopId)
