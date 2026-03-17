@@ -103,9 +103,11 @@ public class SuperAdminController {
                 .orElseThrow(() -> new IllegalArgumentException("Negocio no encontrado"));
         shop.setApprovalStatus(ApprovalStatus.ACTIVE);
         shopRepository.save(shop);
-        AppUser owner = shop.getOwner();
-        String ownerName = profileRepository.findById(owner.getId()).map(p -> p.getFullName()).orElse(owner.getEmail());
-        emailService.sendShopApproved(owner.getEmail(), ownerName, shop.getName());
+        try {
+            AppUser owner = shop.getOwner();
+            String ownerName = profileRepository.findById(owner.getId()).map(p -> p.getFullName()).orElse(owner.getEmail());
+            emailService.sendShopApproved(owner.getEmail(), ownerName, shop.getName());
+        } catch (Exception e) { /* email no crítico */ }
         return ResponseEntity.ok(Map.of("approvalStatus", "ACTIVE", "shopId", shopId));
     }
 
@@ -116,9 +118,11 @@ public class SuperAdminController {
                 .orElseThrow(() -> new IllegalArgumentException("Negocio no encontrado"));
         shop.setApprovalStatus(ApprovalStatus.REJECTED);
         shopRepository.save(shop);
-        AppUser owner = shop.getOwner();
-        String ownerName = profileRepository.findById(owner.getId()).map(p -> p.getFullName()).orElse(owner.getEmail());
-        emailService.sendShopRejected(owner.getEmail(), ownerName, shop.getName());
+        try {
+            AppUser owner = shop.getOwner();
+            String ownerName = profileRepository.findById(owner.getId()).map(p -> p.getFullName()).orElse(owner.getEmail());
+            emailService.sendShopRejected(owner.getEmail(), ownerName, shop.getName());
+        } catch (Exception e) { /* email no crítico */ }
         return ResponseEntity.ok(Map.of("approvalStatus", "REJECTED", "shopId", shopId));
     }
 
@@ -139,6 +143,7 @@ public class SuperAdminController {
                 .collect(Collectors.toList());
     }
 
+    @Transactional
     @PutMapping("/products/{productId}/approve")
     public ResponseEntity<Map<String, String>> approveProduct(@PathVariable Long productId) {
         Product product = productRepository.findById(productId)
@@ -149,6 +154,7 @@ public class SuperAdminController {
         return ResponseEntity.ok(Map.of("approvalStatus", "ACTIVE", "productId", productId.toString()));
     }
 
+    @Transactional
     @PutMapping("/products/{productId}/reject")
     public ResponseEntity<Map<String, String>> rejectProduct(@PathVariable Long productId) {
         Product product = productRepository.findById(productId)
@@ -160,15 +166,19 @@ public class SuperAdminController {
     }
 
     private void notifyProductOwner(Product product, boolean approved) {
-        shopRepository.findById(product.getShopId()).ifPresent(shop -> {
-            AppUser owner = shop.getOwner();
-            String ownerName = profileRepository.findById(owner.getId()).map(p -> p.getFullName()).orElse(owner.getEmail());
-            if (approved) {
-                emailService.sendProductApproved(owner.getEmail(), ownerName, product.getName());
-            } else {
-                emailService.sendProductRejected(owner.getEmail(), ownerName, product.getName());
-            }
-        });
+        try {
+            shopRepository.findById(product.getShopId()).ifPresent(shop -> {
+                AppUser owner = shop.getOwner();
+                String ownerName = profileRepository.findById(owner.getId()).map(p -> p.getFullName()).orElse(owner.getEmail());
+                if (approved) {
+                    emailService.sendProductApproved(owner.getEmail(), ownerName, product.getName());
+                } else {
+                    emailService.sendProductRejected(owner.getEmail(), ownerName, product.getName());
+                }
+            });
+        } catch (Exception e) {
+            // El email es no crítico — el estado ya fue guardado
+        }
     }
 
     // ─── Stats globales ──────────────────────────────────────────────────────
