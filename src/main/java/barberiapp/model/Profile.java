@@ -1,5 +1,6 @@
 package barberiapp.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -19,6 +20,7 @@ public class Profile {
     @Column(length = 36)
     private String id;
 
+    @JsonIgnore
     @OneToOne
     @MapsId
     @JoinColumn(name = "id")
