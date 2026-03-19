@@ -7,6 +7,7 @@ import barberiapp.service.AppointmentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -38,11 +39,13 @@ public class AppointmentController {
     }
 
     @GetMapping
+    @Transactional(readOnly = true)
     public List<Appointment> getUserAppointments(@RequestParam String userId) {
         return appointmentService.getUserAppointments(userId);
     }
 
     @PostMapping
+    @Transactional
     public ResponseEntity<?> createAppointment(@RequestBody AppointmentRequest request) {
         try {
             Appointment appointment = new Appointment();
@@ -75,6 +78,7 @@ public class AppointmentController {
 
     /** POST /api/appointments/barber — barbero agenda cita para un cliente (sin restricción de 15 min) */
     @PostMapping("/barber")
+    @Transactional
     public ResponseEntity<?> createBarberAppointment(@RequestBody BarberBookingRequest request) {
         try {
             String requesterId = getCurrentUserId();
@@ -88,12 +92,14 @@ public class AppointmentController {
     }
 
     @PutMapping("/{id}/cancel")
+    @Transactional
     public Appointment cancelAppointment(@PathVariable Long id, @RequestParam String userId) {
         return appointmentService.cancelAppointment(id, userId);
     }
 
     /** GET /api/appointments/shop/{shopId} — todas las citas del negocio (solo dueño) */
     @GetMapping("/shop/{shopId}")
+    @Transactional(readOnly = true)
     public ResponseEntity<?> getShopAppointments(@PathVariable String shopId) {
         try {
             String requesterId = getCurrentUserId();
@@ -106,6 +112,7 @@ public class AppointmentController {
 
     /** PUT /api/appointments/{id}/confirm — dueño/barbero confirma una cita pendiente */
     @PutMapping("/{id}/confirm")
+    @Transactional
     public ResponseEntity<?> confirmAppointment(@PathVariable Long id) {
         try {
             String requesterId = getCurrentUserId();
@@ -120,6 +127,7 @@ public class AppointmentController {
 
     /** PUT /api/appointments/{id}/complete — marcar cita como completada (dueño/barbero) */
     @PutMapping("/{id}/complete")
+    @Transactional
     public ResponseEntity<?> completeAppointment(@PathVariable Long id) {
         try {
             String requesterId = getCurrentUserId();
@@ -134,6 +142,7 @@ public class AppointmentController {
 
     /** PUT /api/appointments/{id}/cancel-by-barber — dueño/barbero cancela la cita */
     @PutMapping("/{id}/cancel-by-barber")
+    @Transactional
     public ResponseEntity<?> cancelByBarber(@PathVariable Long id) {
         try {
             String requesterId = getCurrentUserId();
@@ -148,6 +157,7 @@ public class AppointmentController {
 
     /** PUT /api/appointments/{id}/no-show — cliente no se presentó */
     @PutMapping("/{id}/no-show")
+    @Transactional
     public ResponseEntity<?> noShowAppointment(@PathVariable Long id) {
         try {
             String requesterId = getCurrentUserId();
