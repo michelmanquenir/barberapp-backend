@@ -56,6 +56,14 @@ public class DataInitializer implements ApplicationRunner {
                 .icon("🧴")
                 .description("Tienda de productos de belleza, cuidado personal y cosmética.")
                 .sortOrder(4)
+                .build(),
+            BusinessCategory.builder()
+                .id(UUID.randomUUID().toString())
+                .name("Gimnasio de Boxeo")
+                .slug("gimnasio-boxeo")
+                .icon("🥊")
+                .description("Clases de boxeo, entrenamientos personalizados y artes marciales.")
+                .sortOrder(5)
                 .build()
         );
 
