@@ -29,6 +29,22 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             @Param("shopId") String shopId,
             @Param("barberIds") List<Long> barberIds);
 
+    /**
+     * Igual que findByShopOrLegacyBarbers pero con JOIN FETCH sobre
+     * user, barber y service para evitar LazyInitializationException
+     * al serializar fuera de sesión.
+     */
+    @Query("SELECT DISTINCT a FROM Appointment a " +
+           "LEFT JOIN FETCH a.user " +
+           "LEFT JOIN FETCH a.barber b " +
+           "LEFT JOIN FETCH a.service " +
+           "WHERE a.shopId = :shopId " +
+           "   OR (a.shopId IS NULL AND b.id IN :barberIds) " +
+           "ORDER BY a.date DESC, a.time DESC")
+    List<Appointment> findByShopOrLegacyBarbersEager(
+            @Param("shopId") String shopId,
+            @Param("barberIds") List<Long> barberIds);
+
     /** Todas las citas de un conjunto de barberos */
     List<Appointment> findByBarberIdInOrderByDateDescTimeDesc(List<Long> barberIds);
 

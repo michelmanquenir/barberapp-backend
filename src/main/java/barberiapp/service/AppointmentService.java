@@ -301,8 +301,10 @@ public class AppointmentService {
 
         if (barberIds.isEmpty()) barberIds = List.of(-1L); // evitar IN vacío
 
-        // Trae citas con shopId asignado + citas legacy (shopId null) de esos barberos
-        return appointmentRepository.findByShopOrLegacyBarbers(shopId, barberIds);
+        // Trae citas con shopId asignado + citas legacy (shopId null) de esos barberos.
+        // Usa JOIN FETCH para inicializar user/barber/service en la misma query
+        // y evitar LazyInitializationException al serializar.
+        return appointmentRepository.findByShopOrLegacyBarbersEager(shopId, barberIds);
     }
 
     /**
