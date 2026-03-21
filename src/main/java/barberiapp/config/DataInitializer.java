@@ -81,19 +81,61 @@ public class DataInitializer implements ApplicationRunner {
     private void seedProductCategories() {
         if (productCategoryRepository.count() > 0) return;
 
-        List<ProductCategory> defaults = List.of(
-            ProductCategory.builder().id(UUID.randomUUID().toString()).name("Cuidado del cabello").icon("💆").sortOrder(1).build(),
-            ProductCategory.builder().id(UUID.randomUUID().toString()).name("Cuidado de la barba").icon("🧔").sortOrder(2).build(),
-            ProductCategory.builder().id(UUID.randomUUID().toString()).name("Cuidado de la piel").icon("✨").sortOrder(3).build(),
-            ProductCategory.builder().id(UUID.randomUUID().toString()).name("Maquillaje").icon("💄").sortOrder(4).build(),
-            ProductCategory.builder().id(UUID.randomUUID().toString()).name("Perfumes y fragancias").icon("🌸").sortOrder(5).build(),
-            ProductCategory.builder().id(UUID.randomUUID().toString()).name("Uñas y esmaltes").icon("💅").sortOrder(6).build(),
-            ProductCategory.builder().id(UUID.randomUUID().toString()).name("Suplementos y vitaminas").icon("💊").sortOrder(7).build(),
-            ProductCategory.builder().id(UUID.randomUUID().toString()).name("Accesorios").icon("🧴").sortOrder(8).build(),
-            ProductCategory.builder().id(UUID.randomUUID().toString()).name("Equipamiento deportivo").icon("🥊").sortOrder(9).build(),
-            ProductCategory.builder().id(UUID.randomUUID().toString()).name("Otros").icon("📦").sortOrder(99).build()
-        );
+        // ── Categorías raíz ───────────────────────────────────────────────────
+        String idBarberia   = UUID.randomUUID().toString();
+        String idBelleza    = UUID.randomUUID().toString();
+        String idBazar      = UUID.randomUUID().toString();
+        String idSalud      = UUID.randomUUID().toString();
+        String idDeportes   = UUID.randomUUID().toString();
+        String idOtros      = UUID.randomUUID().toString();
 
-        productCategoryRepository.saveAll(defaults);
+        List<ProductCategory> parents = List.of(
+            pc(idBarberia, "Barbería y Cuidado Capilar", "✂️", null, 1),
+            pc(idBelleza,  "Belleza y Maquillaje",       "💄", null, 2),
+            pc(idBazar,    "Bazar / Abarrotes",           "🛒", null, 3),
+            pc(idSalud,    "Salud y Bienestar",           "💊", null, 4),
+            pc(idDeportes, "Deportes y Fitness",          "🏋️", null, 5),
+            pc(idOtros,    "Otros",                       "📦", null, 99)
+        );
+        productCategoryRepository.saveAll(parents);
+
+        // ── Subcategorías ─────────────────────────────────────────────────────
+        List<ProductCategory> children = List.of(
+            // Barbería y Cuidado Capilar
+            pc(UUID.randomUUID().toString(), "Shampoos y acondicionadores", "🚿",  idBarberia, 1),
+            pc(UUID.randomUUID().toString(), "Pomadas, ceras y fijadores",  "🪮",  idBarberia, 2),
+            pc(UUID.randomUUID().toString(), "Tintes y coloración",         "🎨",  idBarberia, 3),
+            pc(UUID.randomUUID().toString(), "Cuidado de la barba",         "🧔",  idBarberia, 4),
+            pc(UUID.randomUUID().toString(), "Tratamientos capilares",      "✨",  idBarberia, 5),
+            // Belleza y Maquillaje
+            pc(UUID.randomUUID().toString(), "Maquillaje facial",           "💄",  idBelleza, 1),
+            pc(UUID.randomUUID().toString(), "Cuidado de la piel",          "🧴",  idBelleza, 2),
+            pc(UUID.randomUUID().toString(), "Uñas y esmaltes",             "💅",  idBelleza, 3),
+            pc(UUID.randomUUID().toString(), "Perfumes y fragancias",       "🌸",  idBelleza, 4),
+            // Bazar / Abarrotes
+            pc(UUID.randomUUID().toString(), "Bebidas",                     "🥤",  idBazar, 1),
+            pc(UUID.randomUUID().toString(), "Alimentos y abarrotes",       "🥫",  idBazar, 2),
+            pc(UUID.randomUUID().toString(), "Snacks y golosinas",          "🍬",  idBazar, 3),
+            pc(UUID.randomUUID().toString(), "Limpieza del hogar",          "🧹",  idBazar, 4),
+            pc(UUID.randomUUID().toString(), "Higiene personal",            "🧼",  idBazar, 5),
+            // Salud y Bienestar
+            pc(UUID.randomUUID().toString(), "Suplementos y vitaminas",     "💊",  idSalud, 1),
+            pc(UUID.randomUUID().toString(), "Medicamentos OTC",            "🩺",  idSalud, 2),
+            pc(UUID.randomUUID().toString(), "Productos naturales",         "🌿",  idSalud, 3),
+            // Deportes y Fitness
+            pc(UUID.randomUUID().toString(), "Equipamiento deportivo",      "🥊",  idDeportes, 1),
+            pc(UUID.randomUUID().toString(), "Ropa deportiva",              "👟",  idDeportes, 2),
+            pc(UUID.randomUUID().toString(), "Nutrición deportiva",         "🥗",  idDeportes, 3),
+            // Otros
+            pc(UUID.randomUUID().toString(), "Accesorios",                  "🧲",  idOtros, 1),
+            pc(UUID.randomUUID().toString(), "General",                     "📦",  idOtros, 99)
+        );
+        productCategoryRepository.saveAll(children);
+    }
+
+    /** Helper para construir ProductCategory sin repetir builder cada vez */
+    private static ProductCategory pc(String id, String name, String icon, String parentId, int order) {
+        return ProductCategory.builder()
+                .id(id).name(name).icon(icon).parentId(parentId).sortOrder(order).build();
     }
 }

@@ -28,6 +28,13 @@ public class ProductCategory {
     @Column(length = 10)
     private String icon;
 
+    /**
+     * ID de la categoría padre. null = categoría raíz.
+     * Las subcategorías apuntan al id de su padre.
+     */
+    @Column(name = "parent_id", length = 36)
+    private String parentId;
+
     @Builder.Default
     @Column(nullable = false)
     private Boolean active = true;

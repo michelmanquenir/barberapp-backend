@@ -1,5 +1,6 @@
 package barberiapp.controller;
 
+import barberiapp.dto.ProductCategoryTree;
 import barberiapp.model.ProductCategory;
 import barberiapp.repository.ProductCategoryRepository;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequiredArgsConstructor
@@ -17,14 +19,24 @@ public class ProductCategoryController {
 
     private final ProductCategoryRepository repo;
 
-    // ── Público: listado de categorías activas (para el dropdown de productos) ──
+    // ── Público: árbol de categorías activas ──────────────────────────────────
 
     @GetMapping("/api/product-categories")
-    public List<ProductCategory> listActive() {
-        return repo.findByActiveTrueOrderBySortOrderAsc();
+    public List<ProductCategoryTree> listTree() {
+        return repo.findByParentIdIsNullAndActiveTrueOrderBySortOrderAsc()
+                .stream()
+                .map(parent -> {
+                    List<ProductCategoryTree> children = repo
+                            .findByParentIdAndActiveTrueOrderBySortOrderAsc(parent.getId())
+                            .stream()
+                            .map(child -> ProductCategoryTree.from(child, List.of()))
+                            .collect(Collectors.toList());
+                    return ProductCategoryTree.from(parent, children);
+                })
+                .collect(Collectors.toList());
     }
 
-    // ── Super Admin ────────────────────────────────────────────────────────────
+    // ── Super Admin: lista plana completa ─────────────────────────────────────
 
     @GetMapping("/api/super-admin/product-categories")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
@@ -35,10 +47,16 @@ public class ProductCategoryController {
     @PostMapping("/api/super-admin/product-categories")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<ProductCategory> create(@RequestBody Map<String, Object> body) {
+        String parentId = str(body, "parentId");
+        // Validar que el padre existe si se envió
+        if (parentId != null && !repo.existsById(parentId)) {
+            return ResponseEntity.badRequest().build();
+        }
         ProductCategory cat = ProductCategory.builder()
                 .id(UUID.randomUUID().toString())
                 .name(str(body, "name"))
                 .icon(str(body, "icon"))
+                .parentId(parentId)
                 .sortOrder(intVal(body, "sortOrder", 0))
                 .active(true)
                 .build();
@@ -56,6 +74,8 @@ public class ProductCategoryController {
             cat.setName(str(body, "name"));
         if (body.containsKey("icon"))
             cat.setIcon(str(body, "icon"));
+        if (body.containsKey("parentId"))
+            cat.setParentId(str(body, "parentId")); // null = promover a raíz
         if (body.containsKey("sortOrder"))
             cat.setSortOrder(intVal(body, "sortOrder", cat.getSortOrder()));
         if (body.containsKey("active"))
@@ -70,6 +90,11 @@ public class ProductCategoryController {
         repo.findById(id).ifPresent(cat -> {
             cat.setActive(false);
             repo.save(cat);
+            // Desactivar también todas las subcategorías
+            repo.findByParentIdOrderBySortOrderAsc(id).forEach(child -> {
+                child.setActive(false);
+                repo.save(child);
+            });
         });
         return ResponseEntity.noContent().build();
     }
@@ -77,8 +102,9 @@ public class ProductCategoryController {
     // ── Helpers ────────────────────────────────────────────────────────────────
 
     private String str(Map<String, Object> body, String key) {
+        if (!body.containsKey(key)) return null;
         Object v = body.get(key);
-        return v instanceof String s ? s.trim() : null;
+        return v instanceof String s && !s.isBlank() ? s.trim() : null;
     }
 
     private int intVal(Map<String, Object> body, String key, int fallback) {
