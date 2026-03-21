@@ -14,5 +14,7 @@ public class OrderRequest {
     /** Requerido si deliveryType = "delivery" */
     private String clientAddress;
     private String notes;
+    /** Recargo de delivery calculado en frontend (pricePerKm × km × 2). 0 o null si es retiro */
+    private Integer deliveryFee;
     private List<OrderItemRequest> items;
 }

@@ -19,6 +19,7 @@ public class OrderResponse {
     private String paymentMethod;
     private String clientAddress;
     private Integer totalPrice;
+    private Integer deliveryFee;
     private String notes;
     private LocalDateTime createdAt;
     private List<OrderItemResponse> items;

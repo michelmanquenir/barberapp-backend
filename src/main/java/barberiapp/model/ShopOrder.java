@@ -52,6 +52,11 @@ public class ShopOrder {
     @Column(name = "total_price", nullable = false)
     private Integer totalPrice;
 
+    /** Recargo de delivery en centavos (0 si es retiro) */
+    @Builder.Default
+    @Column(name = "delivery_fee", nullable = false)
+    private Integer deliveryFee = 0;
+
     @Column(columnDefinition = "TEXT")
     private String notes;
 

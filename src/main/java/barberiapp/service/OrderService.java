@@ -64,11 +64,14 @@ public class OrderService {
             return p;
         }).collect(Collectors.toList());
 
-        // Calcular total
-        int totalPrice = 0;
+        // Calcular total (productos + recargo delivery)
+        int itemsTotal = 0;
         for (int i = 0; i < request.getItems().size(); i++) {
-            totalPrice += resolvedProducts.get(i).getSalePrice() * request.getItems().get(i).getQuantity();
+            itemsTotal += resolvedProducts.get(i).getSalePrice() * request.getItems().get(i).getQuantity();
         }
+        int deliveryFee = (request.getDeliveryFee() != null && request.getDeliveryFee() > 0)
+                ? request.getDeliveryFee() : 0;
+        int totalPrice = itemsTotal + deliveryFee;
 
         // Snapshot del nombre del cliente
         String clientName = profileRepository.findById(clientUserId)
@@ -85,6 +88,7 @@ public class OrderService {
                 .paymentMethod(request.getPaymentMethod() != null ? request.getPaymentMethod() : "cash")
                 .clientAddress(request.getClientAddress())
                 .totalPrice(totalPrice)
+                .deliveryFee(deliveryFee)
                 .notes(request.getNotes())
                 .build();
 
@@ -232,6 +236,7 @@ public class OrderService {
                 .paymentMethod(order.getPaymentMethod())
                 .clientAddress(order.getClientAddress())
                 .totalPrice(order.getTotalPrice())
+                .deliveryFee(order.getDeliveryFee())
                 .notes(order.getNotes())
                 .createdAt(order.getCreatedAt())
                 .items(items)
