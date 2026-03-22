@@ -14,13 +14,7 @@ import java.time.LocalTime;
  * Un barbero puede tener distintos turnos (días/horas) en distintas barberías.
  */
 @Entity
-@Table(
-    name = "barber_schedules",
-    uniqueConstraints = @UniqueConstraint(
-        name = "uq_barber_shop_day",
-        columnNames = {"barber_id", "shop_id", "day_of_week"}
-    )
-)
+@Table(name = "barber_schedules")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

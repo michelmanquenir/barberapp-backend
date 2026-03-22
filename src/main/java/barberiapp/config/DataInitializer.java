@@ -7,6 +7,7 @@ import barberiapp.repository.ProductCategoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -17,6 +18,7 @@ import java.util.UUID;
  * solo si las tablas están vacías.
  */
 @Component
+@Order(2)
 @RequiredArgsConstructor
 public class DataInitializer implements ApplicationRunner {
 

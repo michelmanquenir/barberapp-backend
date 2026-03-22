@@ -73,13 +73,25 @@ public class BarberScheduleService {
 
         String day = dayOfWeek.toUpperCase();
 
-        // Permitir actualizar si ya existe el mismo día (borrar y recrear)
-        List<BarberSchedule> existing = scheduleRepository
+        // Validar que el nuevo turno no se solape con alguno existente del mismo día
+        List<BarberSchedule> sameDay = scheduleRepository
                 .findByBarberIdAndShopIdAndActiveTrue(barberId, shopId)
                 .stream()
                 .filter(s -> s.getDayOfWeek().equals(day))
                 .toList();
-        existing.forEach(s -> scheduleRepository.deleteById(s.getId()));
+
+        for (BarberSchedule existing : sameDay) {
+            // Dos rangos se solapan si uno empieza antes de que el otro termine
+            boolean overlaps = startTime.isBefore(existing.getEndTime())
+                    && endTime.isAfter(existing.getStartTime());
+            if (overlaps) {
+                throw new IllegalArgumentException(
+                    String.format("El turno %s–%s se solapa con uno existente (%s–%s) ese día.",
+                        startTime.format(HM), endTime.format(HM),
+                        existing.getStartTime().format(HM), existing.getEndTime().format(HM))
+                );
+            }
+        }
 
         BarberSchedule schedule = new BarberSchedule();
         schedule.setBarber(barber);
