@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
@@ -29,4 +30,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     /** Super admin: todos los productos filtrados por approvalStatus */
     @Query("SELECT p FROM Product p WHERE p.approvalStatus = :status ORDER BY p.createdAt DESC")
     List<Product> findByApprovalStatus(@Param("status") ApprovalStatus status);
+
+    /** POS: buscar producto activo por código de barras dentro de un negocio */
+    Optional<Product> findByShopIdAndBarcodeAndActiveTrue(String shopId, String barcode);
 }

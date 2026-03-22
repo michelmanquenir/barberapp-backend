@@ -31,6 +31,8 @@ public class ShopProductResponse {
 
     /** true si el stock está en nivel crítico (< 5 unidades) */
     private Boolean lowStock;
+    private String barcode;
+    private String sku;
 
     // ── Factory ─────────────────────────────────────────────────────────────────
 
@@ -51,6 +53,8 @@ public class ShopProductResponse {
         r.setProfit(p.getProfit());
         r.setProfitMarginPct(p.getProfitMarginPct());
         r.setLowStock(p.getStock() != null && p.getStock() < 5);
+        r.setBarcode(p.getBarcode());
+        r.setSku(p.getSku());
         return r;
     }
 }

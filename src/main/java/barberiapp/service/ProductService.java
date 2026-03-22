@@ -105,5 +105,7 @@ public class ProductService {
         if (req.getSalePrice()     != null) p.setSalePrice(req.getSalePrice());
         if (req.getStock()         != null) p.setStock(Math.max(0, req.getStock()));
         if (req.getActive()        != null) p.setActive(req.getActive());
+        if (req.getBarcode()       != null) p.setBarcode(req.getBarcode().trim().isEmpty() ? null : req.getBarcode().trim());
+        if (req.getSku()           != null) p.setSku(req.getSku().trim().isEmpty() ? null : req.getSku().trim());
     }
 }

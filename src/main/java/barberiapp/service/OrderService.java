@@ -99,12 +99,15 @@ public class OrderService {
             } catch (Exception ignored) { /* formato inválido → null */ }
         }
 
+        String source = (request.getSource() != null && request.getSource().equals("pos")) ? "pos" : "web";
+
         // Guardar pedido
         ShopOrder order = ShopOrder.builder()
                 .shopId(request.getShopId())
                 .clientUserId(clientUserId)
                 .clientName(clientName)
-                .status("pending")
+                .source(source)
+                .status("pos".equals(source) ? "delivered" : "pending") // ventas POS son inmediatas
                 .deliveryType(request.getDeliveryType() != null ? request.getDeliveryType() : "pickup")
                 .paymentMethod(request.getPaymentMethod() != null ? request.getPaymentMethod() : "cash")
                 .clientAddress(request.getClientAddress())
@@ -255,6 +258,7 @@ public class OrderService {
                 .shopName(shopName)
                 .clientUserId(order.getClientUserId())
                 .clientName(order.getClientName())
+                .source(order.getSource())
                 .status(order.getStatus())
                 .deliveryType(order.getDeliveryType())
                 .paymentMethod(order.getPaymentMethod())

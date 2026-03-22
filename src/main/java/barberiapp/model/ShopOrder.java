@@ -60,6 +60,11 @@ public class ShopOrder {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
+    /** Origen del pedido: "web" (cliente online) | "pos" (venta directa en caja) */
+    @Builder.Default
+    @Column(length = 10, nullable = false)
+    private String source = "web";
+
     /** Barbero asignado para hacer el delivery (null si es retiro en local) */
     @Column(name = "assigned_barber_id")
     private Long assignedBarberId;

@@ -2,6 +2,7 @@ package barberiapp.controller;
 
 import barberiapp.dto.ShopProductRequest;
 import barberiapp.dto.ShopProductResponse;
+import barberiapp.repository.ProductRepository;
 import barberiapp.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +16,7 @@ import java.util.Map;
 public class ProductController {
 
     private final ProductService productService;
+    private final ProductRepository productRepository;
 
     // ── Público ──────────────────────────────────────────────────────────────────
 
@@ -88,5 +90,17 @@ public class ProductController {
     public ResponseEntity<Void> deleteProduct(@PathVariable Long productId) {
         productService.deleteProduct(productId);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * GET /api/admin/shops/{shopId}/products/barcode/{barcode}
+     * Busca un producto activo por su código de barras (para el POS con scanner).
+     */
+    @GetMapping("/api/admin/shops/{shopId}/products/barcode/{barcode}")
+    public ResponseEntity<?> getByBarcode(@PathVariable String shopId,
+                                           @PathVariable String barcode) {
+        return productRepository.findByShopIdAndBarcodeAndActiveTrue(shopId, barcode)
+                .map(p -> ResponseEntity.ok(ShopProductResponse.from(p)))
+                .orElse(ResponseEntity.notFound().build());
     }
 }

@@ -21,4 +21,10 @@ public class ShopProductRequest {
 
     /** Si false, el producto no es visible para los clientes */
     private Boolean active;
+
+    /** Código de barras (EAN-13, UPC-A, Code128, etc.) */
+    private String barcode;
+
+    /** SKU / código interno del negocio */
+    private String sku;
 }

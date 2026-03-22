@@ -45,6 +45,14 @@ public class Product {
     @Column(name = "image_url", columnDefinition = "TEXT")
     private String imageUrl;
 
+    /** Código de barras del producto (EAN-13, UPC-A, Code128, etc.) */
+    @Column(length = 50)
+    private String barcode;
+
+    /** SKU / código interno del negocio */
+    @Column(length = 50)
+    private String sku;
+
     @Column(columnDefinition = "boolean default true")
     private Boolean active = true;
 

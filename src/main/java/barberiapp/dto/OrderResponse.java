@@ -15,6 +15,7 @@ public class OrderResponse {
     private String clientUserId;
     private String clientName;
     private String status;
+    private String source;
     private String deliveryType;
     private String paymentMethod;
     private String clientAddress;
