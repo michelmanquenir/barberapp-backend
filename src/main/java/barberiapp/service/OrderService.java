@@ -8,6 +8,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -22,6 +24,7 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final BarberShopRepository barberShopRepository;
     private final ProfileRepository profileRepository;
+    private final BarberRepository barberRepository;
 
     // ── Estados terminales donde no se puede cambiar nada ────────────────────
     private static final Set<String> TERMINAL_STATUSES = Set.of("delivered", "cancelled");
@@ -78,6 +81,24 @@ public class OrderService {
                 .map(Profile::getFullName)
                 .orElse("Cliente");
 
+        // Barbero asignado para delivery (snapshot del nombre)
+        Long assignedBarberId = request.getAssignedBarberId();
+        String assignedBarberName = null;
+        if (assignedBarberId != null) {
+            assignedBarberName = barberRepository.findById(assignedBarberId)
+                    .map(Barber::getName)
+                    .orElse(null);
+        }
+
+        // Fecha/hora acordada
+        LocalDateTime scheduledAt = null;
+        if (request.getScheduledAt() != null && !request.getScheduledAt().isBlank()) {
+            try {
+                scheduledAt = LocalDateTime.parse(request.getScheduledAt(),
+                        DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+            } catch (Exception ignored) { /* formato inválido → null */ }
+        }
+
         // Guardar pedido
         ShopOrder order = ShopOrder.builder()
                 .shopId(request.getShopId())
@@ -90,6 +111,9 @@ public class OrderService {
                 .totalPrice(totalPrice)
                 .deliveryFee(deliveryFee)
                 .notes(request.getNotes())
+                .assignedBarberId(assignedBarberId)
+                .assignedBarberName(assignedBarberName)
+                .scheduledAt(scheduledAt)
                 .build();
 
         ShopOrder savedOrder = shopOrderRepository.save(order);
@@ -238,6 +262,9 @@ public class OrderService {
                 .totalPrice(order.getTotalPrice())
                 .deliveryFee(order.getDeliveryFee())
                 .notes(order.getNotes())
+                .assignedBarberId(order.getAssignedBarberId())
+                .assignedBarberName(order.getAssignedBarberName())
+                .scheduledAt(order.getScheduledAt())
                 .createdAt(order.getCreatedAt())
                 .items(items)
                 .build();

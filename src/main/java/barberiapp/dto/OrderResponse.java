@@ -21,6 +21,9 @@ public class OrderResponse {
     private Integer totalPrice;
     private Integer deliveryFee;
     private String notes;
+    private Long assignedBarberId;
+    private String assignedBarberName;
+    private LocalDateTime scheduledAt;
     private LocalDateTime createdAt;
     private List<OrderItemResponse> items;
 }

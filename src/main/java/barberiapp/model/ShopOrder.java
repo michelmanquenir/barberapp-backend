@@ -60,6 +60,18 @@ public class ShopOrder {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
+    /** Barbero asignado para hacer el delivery (null si es retiro en local) */
+    @Column(name = "assigned_barber_id")
+    private Long assignedBarberId;
+
+    /** Snapshot del nombre del repartidor asignado */
+    @Column(name = "assigned_barber_name", length = 100)
+    private String assignedBarberName;
+
+    /** Fecha/hora acordada para el delivery (null si es retiro o no se agendó) */
+    @Column(name = "scheduled_at")
+    private LocalDateTime scheduledAt;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
