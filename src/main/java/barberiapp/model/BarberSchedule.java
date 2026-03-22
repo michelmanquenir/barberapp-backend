@@ -1,5 +1,6 @@
 package barberiapp.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -31,10 +32,14 @@ public class BarberSchedule {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "barber_id", nullable = false)
+    @JsonIgnoreProperties({"bio", "specialties", "imageUrl", "rating", "active", "userId", "createdAt"})
     private Barber barber;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "shop_id", nullable = false)
+    @JsonIgnoreProperties({"owner", "description", "slug", "address", "latitude", "longitude",
+            "active", "approvalStatus", "homeServiceEnabled", "pricePerKm", "categoryId",
+            "createdAt", "updatedAt"})
     private BarberShop shop;
 
     /**
