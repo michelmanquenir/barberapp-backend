@@ -10,4 +10,5 @@ public class GlobalProductRequest {
     private String imageUrl;
     private String barcode;
     private String sku;
+    private Boolean active;
 }

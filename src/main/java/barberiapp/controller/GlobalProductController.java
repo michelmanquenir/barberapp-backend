@@ -82,11 +82,12 @@ public class GlobalProductController {
                 .orElse(null);
         if (gp == null) return ResponseEntity.notFound().build();
 
-        if (req.getName() != null && !req.getName().isBlank()) gp.setName(req.getName().trim());
+        if (req.getName()        != null && !req.getName().isBlank()) gp.setName(req.getName().trim());
         if (req.getDescription() != null) gp.setDescription(req.getDescription().trim().isEmpty() ? null : req.getDescription().trim());
         if (req.getCategory()    != null) gp.setCategory(req.getCategory().trim().isEmpty() ? null : req.getCategory().trim());
         if (req.getImageUrl()    != null) gp.setImageUrl(req.getImageUrl().trim().isEmpty() ? null : req.getImageUrl().trim());
         if (req.getSku()         != null) gp.setSku(req.getSku().trim().isEmpty() ? null : req.getSku().trim());
+        if (req.getActive()      != null) gp.setActive(req.getActive());
 
         return ResponseEntity.ok(GlobalProductDto.from(repo.save(gp)));
     }

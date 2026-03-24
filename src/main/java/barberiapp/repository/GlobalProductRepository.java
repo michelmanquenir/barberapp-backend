@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
 
 @Repository
 public interface GlobalProductRepository extends JpaRepository<GlobalProduct, Long> {
@@ -30,4 +31,22 @@ public interface GlobalProductRepository extends JpaRepository<GlobalProduct, Lo
 
     /** Lista todos los activos (paginada) */
     List<GlobalProduct> findByActiveTrueOrderByNameAsc(Pageable pageable);
+
+    /**
+     * Super admin: busca en TODOS los productos (incluyendo inactivos), paginado.
+     * Si q está vacío devuelve todos.
+     */
+    @Query(value = """
+            SELECT gp FROM GlobalProduct gp
+            WHERE :q = ''
+               OR LOWER(gp.name) LIKE LOWER(CONCAT('%', :q, '%'))
+               OR gp.barcode = :q
+            """,
+            countQuery = """
+            SELECT COUNT(gp) FROM GlobalProduct gp
+            WHERE :q = ''
+               OR LOWER(gp.name) LIKE LOWER(CONCAT('%', :q, '%'))
+               OR gp.barcode = :q
+            """)
+    Page<GlobalProduct> searchAll(@Param("q") String q, Pageable pageable);
 }
