@@ -94,12 +94,19 @@ public class ProductController {
 
     /**
      * GET /api/admin/shops/{shopId}/products/barcode/{barcode}
-     * Busca un producto activo por su código de barras (para el POS con scanner).
+     * Busca un producto activo por código de barras.
+     * Busca primero en barcode local, luego en barcode del catálogo global vinculado.
      */
     @GetMapping("/api/admin/shops/{shopId}/products/barcode/{barcode}")
     public ResponseEntity<?> getByBarcode(@PathVariable String shopId,
                                            @PathVariable String barcode) {
-        return productRepository.findByShopIdAndBarcodeAndActiveTrue(shopId, barcode)
+        // 1. Barcode local
+        var local = productRepository.findByShopIdAndBarcodeAndActiveTrue(shopId, barcode);
+        if (local.isPresent()) return ResponseEntity.ok(ShopProductResponse.from(local.get()));
+
+        // 2. Barcode del catálogo global vinculado
+        var global = productRepository.findByShopIdAndGlobalBarcodeAndActive(shopId, barcode);
+        return global
                 .map(p -> ResponseEntity.ok(ShopProductResponse.from(p)))
                 .orElse(ResponseEntity.notFound().build());
     }

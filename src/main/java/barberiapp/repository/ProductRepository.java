@@ -13,14 +13,17 @@ import java.util.Optional;
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
-    /** Todos los productos de una barbería (admin: incluye inactivos) */
-    List<Product> findByShopIdOrderByCategoryAscNameAsc(String shopId);
+    /** Todos los productos de una barbería (admin: incluye inactivos).
+     *  LEFT JOIN FETCH globalProduct para evitar N+1 al construir los DTOs. */
+    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.globalProduct WHERE p.shopId = :shopId ORDER BY p.createdAt DESC")
+    List<Product> findByShopIdOrderByCategoryAscNameAsc(@Param("shopId") String shopId);
 
     /** Solo productos activos de una barbería (vista pública sin filtro de aprobación — uso interno) */
-    List<Product> findByShopIdAndActiveTrueOrderByCategoryAscNameAsc(String shopId);
+    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.globalProduct WHERE p.shopId = :shopId AND p.active = true ORDER BY p.createdAt DESC")
+    List<Product> findByShopIdAndActiveTrueOrderByCategoryAscNameAsc(@Param("shopId") String shopId);
 
-    /** Vista pública: solo activos Y aprobados (null se trata como ACTIVE para datos previos a la migración) */
-    @Query("SELECT p FROM Product p WHERE p.shopId = :shopId AND p.active = true AND (p.approvalStatus = :approved OR p.approvalStatus IS NULL) ORDER BY p.category ASC, p.name ASC")
+    /** Vista pública: solo activos Y aprobados */
+    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.globalProduct WHERE p.shopId = :shopId AND p.active = true AND (p.approvalStatus = :approved OR p.approvalStatus IS NULL) ORDER BY p.createdAt DESC")
     List<Product> findPublicApproved(@Param("shopId") String shopId, @Param("approved") ApprovalStatus approved);
 
     /** Super admin: todos los productos de todos los negocios */
@@ -31,6 +34,10 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query("SELECT p FROM Product p WHERE p.approvalStatus = :status ORDER BY p.createdAt DESC")
     List<Product> findByApprovalStatus(@Param("status") ApprovalStatus status);
 
-    /** POS: buscar producto activo por código de barras dentro de un negocio */
+    /** POS: buscar producto activo por código de barras local dentro de un negocio */
     Optional<Product> findByShopIdAndBarcodeAndActiveTrue(String shopId, String barcode);
+
+    /** POS: buscar producto activo por barcode del catálogo global dentro de un negocio */
+    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.globalProduct gp WHERE p.shopId = :shopId AND gp.barcode = :barcode AND p.active = true")
+    Optional<Product> findByShopIdAndGlobalBarcodeAndActive(@Param("shopId") String shopId, @Param("barcode") String barcode);
 }

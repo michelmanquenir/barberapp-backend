@@ -25,6 +25,7 @@ public class SchemaMigrationRunner implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         dropUniqueConstraintBarberScheduleDay();
+        allowNullProductName();
     }
 
     /**
@@ -32,6 +33,20 @@ public class SchemaMigrationRunner implements ApplicationRunner {
      * Antes del fix, solo se permitía un turno por día. Ahora se permiten múltiples turnos
      * (ej. 09:00-14:00 y 18:00-21:00 el mismo día), con validación de solapamiento en el servicio.
      */
+    /**
+     * Permite NULL en products.name para que los productos vinculados al catálogo global
+     * puedan tener nombre nulo (se resuelve desde GlobalProduct en runtime).
+     * ddl-auto=update no puede hacer columnas NOT NULL → nullable sin migración manual.
+     */
+    private void allowNullProductName() {
+        try {
+            jdbc.execute("ALTER TABLE products ALTER COLUMN name DROP NOT NULL");
+            log.info("SchemaMigration: products.name ahora permite NULL (catálogo global)");
+        } catch (Exception e) {
+            log.debug("SchemaMigration: products.name ya permite NULL o no se pudo modificar — {}", e.getMessage());
+        }
+    }
+
     private void dropUniqueConstraintBarberScheduleDay() {
         try {
             jdbc.execute(

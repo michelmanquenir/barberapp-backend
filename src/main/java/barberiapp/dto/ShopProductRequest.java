@@ -27,4 +27,11 @@ public class ShopProductRequest {
 
     /** SKU / código interno del negocio */
     private String sku;
+
+    /**
+     * ID de un GlobalProduct del catálogo global.
+     * Si se provee, los campos name/imageUrl/barcode/sku/description/category
+     * se heredan del catálogo y los valores locales se ignoran.
+     */
+    private Long globalProductId;
 }
