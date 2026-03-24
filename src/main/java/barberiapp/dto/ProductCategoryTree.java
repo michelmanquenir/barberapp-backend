@@ -15,6 +15,7 @@ public class ProductCategoryTree {
     private String  icon;
     private String  parentId;
     private Integer sortOrder;
+    private Boolean active;
     private List<ProductCategoryTree> children;
 
     public static ProductCategoryTree from(ProductCategory cat, List<ProductCategoryTree> children) {
@@ -24,6 +25,7 @@ public class ProductCategoryTree {
                 .icon(cat.getIcon())
                 .parentId(cat.getParentId())
                 .sortOrder(cat.getSortOrder())
+                .active(cat.getActive())
                 .children(children)
                 .build();
     }
