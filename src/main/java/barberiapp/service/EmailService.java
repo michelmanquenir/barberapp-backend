@@ -137,6 +137,22 @@ public class EmailService {
         send(to, "Tu producto no fue aprobado", "#dc2626", body);
     }
 
+    // ─── Recuperación de contraseña ───────────────────────────────────────────
+
+    @Async("emailExecutor")
+    public void sendPasswordResetCode(String to, String name, String code) {
+        String body = "<p style='font-size:16px;color:#111827;'>Hola, <strong>" + escHtml(name) + "</strong> 🔐</p>" +
+                      "<p style='color:#374151;margin-top:8px;'>Recibimos una solicitud para restablecer tu contraseña. " +
+                      "Usa el siguiente código para continuar:</p>" +
+                      "<div style='text-align:center;margin:28px 0;'>" +
+                      "<span style='display:inline-block;font-size:36px;font-weight:700;letter-spacing:12px;color:#111827;" +
+                      "background:#f3f4f6;border-radius:12px;padding:16px 28px;border:2px solid #e5e7eb;'>" +
+                      escHtml(code) + "</span></div>" +
+                      "<p style='color:#6b7280;font-size:13px;'>Este código expira en <strong>15 minutos</strong>. " +
+                      "Si no solicitaste este cambio, puedes ignorar este correo.</p>";
+        send(to, "Código para restablecer tu contraseña", "#2563eb", body);
+    }
+
     // ─── Citas: cliente ───────────────────────────────────────────────────────
 
     @Async("emailExecutor")
