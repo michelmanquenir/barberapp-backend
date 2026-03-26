@@ -74,6 +74,14 @@ public class DataInitializer implements ApplicationRunner {
                 .icon("🥊")
                 .description("Clases de boxeo, entrenamientos personalizados y artes marciales.")
                 .sortOrder(5)
+                .build(),
+            BusinessCategory.builder()
+                .id(UUID.randomUUID().toString())
+                .name("Transporte")
+                .slug("transporte")
+                .icon("🚌")
+                .description("Servicios de transporte, traslados a eventos y logística de pasajeros.")
+                .sortOrder(6)
                 .build()
         );
 

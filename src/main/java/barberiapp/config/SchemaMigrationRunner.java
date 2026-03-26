@@ -26,6 +26,7 @@ public class SchemaMigrationRunner implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         dropUniqueConstraintBarberScheduleDay();
         allowNullProductName();
+        insertTransporteCategory();
     }
 
     /**
@@ -44,6 +45,36 @@ public class SchemaMigrationRunner implements ApplicationRunner {
             log.info("SchemaMigration: products.name ahora permite NULL (catálogo global)");
         } catch (Exception e) {
             log.debug("SchemaMigration: products.name ya permite NULL o no se pudo modificar — {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Inserts the "Transporte" business category if it doesn't already exist.
+     * Needed for existing DBs where DataInitializer already ran and won't re-seed.
+     */
+    private void insertTransporteCategory() {
+        try {
+            Integer count = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM business_categories WHERE slug = 'transporte'",
+                Integer.class
+            );
+            if (count == null || count == 0) {
+                String id = java.util.UUID.randomUUID().toString();
+                jdbc.update(
+                    "INSERT INTO business_categories (id, name, slug, icon, description, sort_order) VALUES (?, ?, ?, ?, ?, ?)",
+                    id,
+                    "Transporte",
+                    "transporte",
+                    "🚌",
+                    "Servicios de transporte, traslados a eventos y logística de pasajeros.",
+                    6
+                );
+                log.info("SchemaMigration: categoría 'Transporte' insertada correctamente");
+            } else {
+                log.debug("SchemaMigration: categoría 'Transporte' ya existe, se omite inserción");
+            }
+        } catch (Exception e) {
+            log.warn("SchemaMigration: no se pudo insertar categoría 'Transporte' — {}", e.getMessage());
         }
     }
 
