@@ -62,7 +62,7 @@ public class ShopOrder {
 
     /** Origen del pedido: "web" (cliente online) | "pos" (venta directa en caja) */
     @Builder.Default
-    @Column(length = 10, nullable = false, columnDefinition = "VARCHAR(10) DEFAULT 'web'")
+    @Column(length = 10, nullable = true)
     private String source = "web";
 
     /** Barbero asignado para hacer el delivery (null si es retiro en local) */
