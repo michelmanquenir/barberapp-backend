@@ -58,15 +58,20 @@ public class SchemaMigrationRunner implements ApplicationRunner {
                 "SELECT COUNT(*) FROM business_categories WHERE slug = 'transporte'",
                 Integer.class
             );
+            // Corregir filas existentes con active = NULL
+            jdbc.update(
+                "UPDATE business_categories SET active = true WHERE slug = 'transporte' AND active IS NULL"
+            );
             if (count == null || count == 0) {
                 String id = java.util.UUID.randomUUID().toString();
                 jdbc.update(
-                    "INSERT INTO business_categories (id, name, slug, icon, description, sort_order) VALUES (?, ?, ?, ?, ?, ?)",
+                    "INSERT INTO business_categories (id, name, slug, icon, description, active, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)",
                     id,
                     "Transporte",
                     "transporte",
                     "🚌",
                     "Servicios de transporte, traslados a eventos y logística de pasajeros.",
+                    true,
                     6
                 );
                 log.info("SchemaMigration: categoría 'Transporte' insertada correctamente");
