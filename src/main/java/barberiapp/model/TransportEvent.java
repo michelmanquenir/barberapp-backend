@@ -38,6 +38,10 @@ public class TransportEvent {
     @Column(name = "banner_image_url", columnDefinition = "TEXT")
     private String bannerImageUrl;
 
+    /** Tarifa en pesos por kilómetro recorrido (nullable = precio libre / a convenir) */
+    @Column(name = "price_per_km")
+    private Double pricePerKm;
+
     @Builder.Default
     @Column(nullable = false)
     private Boolean active = true;

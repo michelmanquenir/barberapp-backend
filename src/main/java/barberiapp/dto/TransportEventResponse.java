@@ -19,6 +19,7 @@ public class TransportEventResponse {
     private String address;
     private LocalDateTime eventDate;
     private String bannerImageUrl;
+    private Double pricePerKm;
     private Boolean active;
     private LocalDateTime createdAt;
     private int vehicleCount;

@@ -9,5 +9,6 @@ public class TransportEventRequest {
     private String address;
     private String eventDate;
     private String bannerImageUrl;
+    private Double pricePerKm;
     private Boolean active;
 }

@@ -57,6 +57,7 @@ public class TransportService {
                 .address(req.getAddress())
                 .eventDate(parseDateTime(req.getEventDate()))
                 .bannerImageUrl(req.getBannerImageUrl())
+                .pricePerKm(req.getPricePerKm())
                 .active(req.getActive() != null ? req.getActive() : true)
                 .build();
         TransportEvent saved = eventRepository.save(event);
@@ -73,6 +74,7 @@ public class TransportService {
         if (req.getAddress() != null) event.setAddress(req.getAddress());
         if (req.getEventDate() != null) event.setEventDate(parseDateTime(req.getEventDate()));
         if (req.getBannerImageUrl() != null) event.setBannerImageUrl(req.getBannerImageUrl());
+        event.setPricePerKm(req.getPricePerKm()); // nullable — null = precio a convenir
         if (req.getActive() != null) event.setActive(req.getActive());
         TransportEvent saved = eventRepository.save(event);
         int vehicleCount = assignmentRepository.findByEventId(eventId).size();
@@ -404,6 +406,7 @@ public class TransportService {
                 .address(e.getAddress())
                 .eventDate(e.getEventDate())
                 .bannerImageUrl(e.getBannerImageUrl())
+                .pricePerKm(e.getPricePerKm())
                 .active(e.getActive())
                 .createdAt(e.getCreatedAt())
                 .vehicleCount(vehicleCount)
