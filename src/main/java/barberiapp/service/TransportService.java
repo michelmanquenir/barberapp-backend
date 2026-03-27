@@ -213,9 +213,43 @@ public class TransportService {
         TransportEvent event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new IllegalArgumentException("Evento no encontrado"));
         verifyOwnership(event.getShopId(), userId);
-        // Check for duplicate assignment
+
+        // ── 1. El conductor no puede estar ya en ESTE mismo evento ───────────
+        if (req.getDriverId() != null) {
+            assignmentRepository.findByEventIdAndDriverId(eventId, req.getDriverId())
+                    .ifPresent(a -> { throw new IllegalArgumentException(
+                            "Este conductor ya está asignado a este evento"); });
+        }
+
+        // ── 2. El vehículo no puede estar ya en ESTE mismo evento ────────────
         assignmentRepository.findByEventIdAndVehicleId(eventId, req.getVehicleId())
-                .ifPresent(a -> { throw new IllegalArgumentException("El vehículo ya está asignado a este evento"); });
+                .ifPresent(a -> { throw new IllegalArgumentException(
+                        "Este vehículo ya está asignado a este evento"); });
+
+        // ── 3. El conductor no puede estar asignado a OTRO evento ────────────
+        if (req.getDriverId() != null) {
+            List<EventVehicleAssignment> driverAssignments = assignmentRepository.findByDriverId(req.getDriverId());
+            boolean driverInOtherEvent = driverAssignments.stream()
+                    .anyMatch(a -> !a.getEventId().equals(eventId));
+            if (driverInOtherEvent) {
+                String driverName = driverRepository.findById(req.getDriverId())
+                        .map(d -> d.getName()).orElse("El conductor");
+                throw new IllegalArgumentException(
+                        driverName + " ya está asignado a otro evento. Retíralo primero antes de reasignarlo.");
+            }
+        }
+
+        // ── 4. El vehículo no puede estar asignado a OTRO evento ─────────────
+        List<EventVehicleAssignment> vehicleAssignments = assignmentRepository.findByVehicleId(req.getVehicleId());
+        boolean vehicleInOtherEvent = vehicleAssignments.stream()
+                .anyMatch(a -> !a.getEventId().equals(eventId));
+        if (vehicleInOtherEvent) {
+            TransportVehicle v = vehicleRepository.findById(req.getVehicleId()).orElse(null);
+            String vName = v != null ? v.getBrand() + " " + v.getModel() : "El vehículo";
+            throw new IllegalArgumentException(
+                    vName + " ya está asignado a otro evento. Retíralo primero antes de reasignarlo.");
+        }
+
         EventVehicleAssignment assignment = EventVehicleAssignment.builder()
                 .eventId(eventId)
                 .vehicleId(req.getVehicleId())

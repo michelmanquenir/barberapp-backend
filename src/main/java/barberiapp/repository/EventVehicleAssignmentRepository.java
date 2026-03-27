@@ -11,5 +11,7 @@ import java.util.Optional;
 public interface EventVehicleAssignmentRepository extends JpaRepository<EventVehicleAssignment, Long> {
     List<EventVehicleAssignment> findByEventId(Long eventId);
     List<EventVehicleAssignment> findByVehicleId(Long vehicleId);
+    List<EventVehicleAssignment> findByDriverId(Long driverId);
     Optional<EventVehicleAssignment> findByEventIdAndVehicleId(Long eventId, Long vehicleId);
+    Optional<EventVehicleAssignment> findByEventIdAndDriverId(Long eventId, Long driverId);
 }
