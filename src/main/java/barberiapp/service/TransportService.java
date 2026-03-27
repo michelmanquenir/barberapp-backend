@@ -164,6 +164,7 @@ public class TransportService {
                 .licensePlate(req.getLicensePlate())
                 .passengerCapacity(req.getPassengerCapacity() != null ? req.getPassengerCapacity() : 4)
                 .commune(req.getCommune())
+                .driverId(req.getDriverId())
                 .imageUrl(req.getImageUrl())
                 .active(req.getActive() != null ? req.getActive() : true)
                 .build();
@@ -181,6 +182,7 @@ public class TransportService {
         if (req.getLicensePlate() != null) vehicle.setLicensePlate(req.getLicensePlate());
         if (req.getPassengerCapacity() != null) vehicle.setPassengerCapacity(req.getPassengerCapacity());
         if (req.getCommune() != null) vehicle.setCommune(req.getCommune());
+        vehicle.setDriverId(req.getDriverId()); // nullable: null = sin conductor asignado
         if (req.getImageUrl() != null) vehicle.setImageUrl(req.getImageUrl());
         if (req.getActive() != null) vehicle.setActive(req.getActive());
         return toVehicleResponse(vehicleRepository.save(vehicle));
@@ -389,6 +391,11 @@ public class TransportService {
     }
 
     private TransportVehicleResponse toVehicleResponse(TransportVehicle v) {
+        String driverName = null;
+        if (v.getDriverId() != null) {
+            driverName = driverRepository.findById(v.getDriverId())
+                    .map(TransportDriver::getName).orElse(null);
+        }
         return TransportVehicleResponse.builder()
                 .id(v.getId())
                 .shopId(v.getShopId())
@@ -398,6 +405,8 @@ public class TransportService {
                 .licensePlate(v.getLicensePlate())
                 .passengerCapacity(v.getPassengerCapacity())
                 .commune(v.getCommune())
+                .driverId(v.getDriverId())
+                .driverName(driverName)
                 .imageUrl(v.getImageUrl())
                 .active(v.getActive())
                 .createdAt(v.getCreatedAt())

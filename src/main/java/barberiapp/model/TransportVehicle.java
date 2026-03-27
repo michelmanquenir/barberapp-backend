@@ -41,6 +41,9 @@ public class TransportVehicle {
     @Column(length = 100)
     private String commune;
 
+    @Column(name = "driver_id")
+    private Long driverId;
+
     @Column(name = "image_url", columnDefinition = "TEXT")
     private String imageUrl;
 

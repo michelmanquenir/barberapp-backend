@@ -10,6 +10,7 @@ public class TransportVehicleRequest {
     private String licensePlate;
     private Integer passengerCapacity;
     private String commune;
+    private Long driverId;
     private String imageUrl;
     private Boolean active;
 }
