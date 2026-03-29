@@ -65,6 +65,12 @@ public class ProductService {
         if (p.getGlobalProduct() == null && (p.getName() == null || p.getName().isBlank()))
             throw new IllegalArgumentException("El nombre es requerido cuando no se vincula a un producto del catálogo");
 
+        // Productos del catálogo global ya fueron revisados por el super admin:
+        // se aprueban automáticamente sin necesidad de revisión adicional.
+        if (p.getGlobalProduct() != null) {
+            p.setApprovalStatus(ApprovalStatus.ACTIVE);
+        }
+
         return ShopProductResponse.from(productRepository.save(p));
     }
 
