@@ -55,6 +55,8 @@ public class TransportService {
                 .eventCode(req.getEventCode())
                 .title(req.getTitle())
                 .address(req.getAddress())
+                .latitude(req.getLatitude())
+                .longitude(req.getLongitude())
                 .eventDate(parseDateTime(req.getEventDate()))
                 .bannerImageUrl(req.getBannerImageUrl())
                 .pricePerKm(req.getPricePerKm())
@@ -72,6 +74,8 @@ public class TransportService {
         if (req.getEventCode() != null) event.setEventCode(req.getEventCode());
         if (req.getTitle() != null) event.setTitle(req.getTitle());
         if (req.getAddress() != null) event.setAddress(req.getAddress());
+        if (req.getLatitude() != null) event.setLatitude(req.getLatitude());
+        if (req.getLongitude() != null) event.setLongitude(req.getLongitude());
         if (req.getEventDate() != null) event.setEventDate(parseDateTime(req.getEventDate()));
         if (req.getBannerImageUrl() != null) event.setBannerImageUrl(req.getBannerImageUrl());
         event.setPricePerKm(req.getPricePerKm()); // nullable — null = precio a convenir
@@ -228,28 +232,36 @@ public class TransportService {
                 .ifPresent(a -> { throw new IllegalArgumentException(
                         "Este vehículo ya está asignado a este evento"); });
 
-        // ── 3. El conductor no puede estar asignado a OTRO evento ────────────
+        // ── 3. El conductor no puede estar asignado a OTRO evento EL MISMO DÍA ─
         if (req.getDriverId() != null) {
             List<EventVehicleAssignment> driverAssignments = assignmentRepository.findByDriverId(req.getDriverId());
-            boolean driverInOtherEvent = driverAssignments.stream()
-                    .anyMatch(a -> !a.getEventId().equals(eventId));
-            if (driverInOtherEvent) {
+            boolean driverInOtherEventSameDay = driverAssignments.stream()
+                    .filter(a -> !a.getEventId().equals(eventId))
+                    .map(a -> eventRepository.findById(a.getEventId()))
+                    .filter(opt -> opt.isPresent() && opt.get().getEventDate() != null)
+                    .anyMatch(opt -> opt.get().getEventDate().toLocalDate()
+                            .equals(event.getEventDate() != null ? event.getEventDate().toLocalDate() : null));
+            if (driverInOtherEventSameDay) {
                 String driverName = driverRepository.findById(req.getDriverId())
                         .map(d -> d.getName()).orElse("El conductor");
                 throw new IllegalArgumentException(
-                        driverName + " ya está asignado a otro evento. Retíralo primero antes de reasignarlo.");
+                        driverName + " ya está asignado a otro evento el mismo día.");
             }
         }
 
-        // ── 4. El vehículo no puede estar asignado a OTRO evento ─────────────
+        // ── 4. El vehículo no puede estar asignado a OTRO evento EL MISMO DÍA ─
         List<EventVehicleAssignment> vehicleAssignments = assignmentRepository.findByVehicleId(req.getVehicleId());
-        boolean vehicleInOtherEvent = vehicleAssignments.stream()
-                .anyMatch(a -> !a.getEventId().equals(eventId));
-        if (vehicleInOtherEvent) {
+        boolean vehicleInOtherEventSameDay = vehicleAssignments.stream()
+                .filter(a -> !a.getEventId().equals(eventId))
+                .map(a -> eventRepository.findById(a.getEventId()))
+                .filter(opt -> opt.isPresent() && opt.get().getEventDate() != null)
+                .anyMatch(opt -> opt.get().getEventDate().toLocalDate()
+                        .equals(event.getEventDate() != null ? event.getEventDate().toLocalDate() : null));
+        if (vehicleInOtherEventSameDay) {
             TransportVehicle v = vehicleRepository.findById(req.getVehicleId()).orElse(null);
             String vName = v != null ? v.getBrand() + " " + v.getModel() : "El vehículo";
             throw new IllegalArgumentException(
-                    vName + " ya está asignado a otro evento. Retíralo primero antes de reasignarlo.");
+                    vName + " ya está asignado a otro evento el mismo día.");
         }
 
         EventVehicleAssignment assignment = EventVehicleAssignment.builder()
@@ -404,6 +416,8 @@ public class TransportService {
                 .eventCode(e.getEventCode())
                 .title(e.getTitle())
                 .address(e.getAddress())
+                .latitude(e.getLatitude())
+                .longitude(e.getLongitude())
                 .eventDate(e.getEventDate())
                 .bannerImageUrl(e.getBannerImageUrl())
                 .pricePerKm(e.getPricePerKm())

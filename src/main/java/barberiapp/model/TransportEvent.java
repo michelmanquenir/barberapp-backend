@@ -38,6 +38,13 @@ public class TransportEvent {
     @Column(name = "banner_image_url", columnDefinition = "TEXT")
     private String bannerImageUrl;
 
+    /** Coordenadas del evento (origen del viaje) */
+    @Column(name = "latitude")
+    private Double latitude;
+
+    @Column(name = "longitude")
+    private Double longitude;
+
     /** Tarifa en pesos por kilómetro recorrido (nullable = precio libre / a convenir) */
     @Column(name = "price_per_km")
     private Double pricePerKm;

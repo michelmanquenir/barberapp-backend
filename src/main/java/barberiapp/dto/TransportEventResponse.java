@@ -17,6 +17,8 @@ public class TransportEventResponse {
     private String eventCode;
     private String title;
     private String address;
+    private Double latitude;
+    private Double longitude;
     private LocalDateTime eventDate;
     private String bannerImageUrl;
     private Double pricePerKm;
