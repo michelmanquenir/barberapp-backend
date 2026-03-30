@@ -1,15 +1,17 @@
 package barberiapp.service;
 
 import jakarta.annotation.PostConstruct;
-import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.http.*;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -17,12 +19,13 @@ public class EmailService {
 
     private static final Logger log = LoggerFactory.getLogger(EmailService.class);
 
-    @PostConstruct
-    void logMailConfig() {
-        log.info("EmailService inicializado — from={}, superAdmin={}", fromEmail, superAdminEmail);
-    }
+    private final RestTemplate restTemplate;
 
-    private final JavaMailSender mailSender;
+    @Value("${brevo.api.key}")
+    private String brevoApiKey;
+
+    @Value("${brevo.api.url}")
+    private String brevoApiUrl;
 
     @Value("${mail.from.email}")
     private String fromEmail;
@@ -32,6 +35,11 @@ public class EmailService {
 
     @Value("${resend.super-admin.email}")
     private String superAdminEmail;
+
+    @PostConstruct
+    void logMailConfig() {
+        log.info("EmailService inicializado (Brevo) — from={}, superAdmin={}", fromEmail, superAdminEmail);
+    }
 
     public record AppointmentEmailData(
             String shopName,
@@ -226,14 +234,25 @@ public class EmailService {
 
     private void send(String to, String subject, String headerColor, String bodyContent) {
         try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            helper.setFrom(fromEmail, fromName);
-            helper.setTo(to);
-            helper.setSubject(subject);
-            helper.setText(buildHtml(subject, headerColor, bodyContent), true);
-            mailSender.send(message);
-            log.info("Email '{}' enviado a {}", subject, to);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("api-key", brevoApiKey);
+
+            Map<String, Object> payload = Map.of(
+                "sender",  Map.of("name", fromName, "email", fromEmail),
+                "to",      List.of(Map.of("email", to)),
+                "subject", subject,
+                "htmlContent", buildHtml(subject, headerColor, bodyContent)
+            );
+
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
+            ResponseEntity<String> response = restTemplate.postForEntity(brevoApiUrl, request, String.class);
+
+            if (response.getStatusCode().is2xxSuccessful()) {
+                log.info("Email '{}' enviado a {} via Brevo", subject, to);
+            } else {
+                log.error("Brevo respondió {} al enviar '{}' a {}: {}", response.getStatusCode(), subject, to, response.getBody());
+            }
         } catch (Exception e) {
             log.error("Error enviando email '{}' a {}: {}", subject, to, e.getMessage(), e);
         }
@@ -288,7 +307,7 @@ public class EmailService {
     }
 
     private String appointmentTable(AppointmentEmailData d) {
-        return "<table style='width:100%%;border-collapse:collapse;margin-top:20px;border-radius:8px;overflow:hidden;'>" +
+        return "<table style='width:100%;border-collapse:collapse;margin-top:20px;border-radius:8px;overflow:hidden;'>" +
                row("Negocio", d.shopName()) +
                row("Barbero / Atendedor", d.barberName()) +
                row("Servicio", d.service()) +
@@ -300,7 +319,7 @@ public class EmailService {
 
     private String row(String label, String value) {
         return "<tr>" +
-               "<td style='padding:10px 14px;background:#f9fafb;font-size:13px;color:#6b7280;font-weight:600;width:40%%;border-bottom:1px solid #e5e7eb;'>" + escHtml(label) + "</td>" +
+               "<td style='padding:10px 14px;background:#f9fafb;font-size:13px;color:#6b7280;font-weight:600;width:40%;border-bottom:1px solid #e5e7eb;'>" + escHtml(label) + "</td>" +
                "<td style='padding:10px 14px;background:#ffffff;font-size:14px;color:#111827;border-bottom:1px solid #e5e7eb;'>" + escHtml(value != null ? value : "—") + "</td>" +
                "</tr>";
     }
