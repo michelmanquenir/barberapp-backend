@@ -1,5 +1,6 @@
 package barberiapp.service;
 
+import jakarta.annotation.PostConstruct;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -15,6 +16,11 @@ import org.springframework.stereotype.Service;
 public class EmailService {
 
     private static final Logger log = LoggerFactory.getLogger(EmailService.class);
+
+    @PostConstruct
+    void logMailConfig() {
+        log.info("EmailService inicializado — from={}, superAdmin={}", fromEmail, superAdminEmail);
+    }
 
     private final JavaMailSender mailSender;
 
@@ -143,6 +149,7 @@ public class EmailService {
 
     @Async("emailExecutor")
     public void sendPasswordResetCode(String to, String name, String code) {
+        log.info("sendPasswordResetCode invocado — to={}, name={}", to, name);
         String body = "<p style='font-size:16px;color:#111827;'>Hola, <strong>" + escHtml(name) + "</strong> 🔐</p>" +
                       "<p style='color:#374151;margin-top:8px;'>Recibimos una solicitud para restablecer tu contraseña. " +
                       "Usa el siguiente código para continuar:</p>" +
@@ -228,7 +235,7 @@ public class EmailService {
             mailSender.send(message);
             log.info("Email '{}' enviado a {}", subject, to);
         } catch (Exception e) {
-            log.error("Error enviando email '{}' a {}: {}", subject, to, e.getMessage());
+            log.error("Error enviando email '{}' a {}: {}", subject, to, e.getMessage(), e);
         }
     }
 
