@@ -1,23 +1,28 @@
 package barberiapp.service;
 
-import com.resend.Resend;
-import com.resend.core.exception.ResendException;
-import com.resend.services.emails.model.CreateEmailOptions;
+import jakarta.mail.internet.MimeMessage;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class EmailService {
 
     private static final Logger log = LoggerFactory.getLogger(EmailService.class);
 
-    private final Resend resend;
+    private final JavaMailSender mailSender;
 
-    @Value("${resend.from.email}")
+    @Value("${mail.from.email}")
     private String fromEmail;
+
+    @Value("${mail.from.name:WeServ}")
+    private String fromName;
 
     @Value("${resend.super-admin.email}")
     private String superAdminEmail;
@@ -30,10 +35,6 @@ public class EmailService {
             String time,
             String total
     ) {}
-
-    public EmailService(@Value("${resend.api.key}") String apiKey) {
-        this.resend = new Resend(apiKey);
-    }
 
     // ─── Notificaciones al super admin ────────────────────────────────────────
 
@@ -56,14 +57,15 @@ public class EmailService {
     @Async("emailExecutor")
     public void sendWelcomeEmail(String to, String name, String role) {
         boolean isOwner = "BUSINESS_OWNER".equals(role);
-        String title = isOwner ? "¡Bienvenido a BarberShop!" : "¡Cuenta creada con éxito!";
+        String title = isOwner ? "¡Bienvenido a WeServ!" : "¡Cuenta creada con éxito!";
         String extra = isOwner
                 ? "<p style='color:#6b7280;font-size:14px;'>Tu cuenta de propietario está siendo revisada. " +
                   "Recibirás un correo cuando sea aprobada.</p>"
                 : "<p style='color:#6b7280;font-size:14px;'>Ya puedes explorar y reservar citas en los mejores negocios.</p>";
 
         String body = "<p style='font-size:16px;color:#111827;'>Hola, <strong>" + escHtml(name) + "</strong> 👋</p>" +
-                      "<p style='color:#374151;margin-top:8px;'>Tu registro fue exitoso. " + (isOwner ? "Ahora solo espera la aprobación del administrador." : "¡Todo listo para comenzar!") + "</p>" +
+                      "<p style='color:#374151;margin-top:8px;'>Tu registro fue exitoso. " +
+                      (isOwner ? "Ahora solo espera la aprobación del administrador." : "¡Todo listo para comenzar!") + "</p>" +
                       extra;
 
         send(to, title, "#111827", body);
@@ -217,16 +219,15 @@ public class EmailService {
 
     private void send(String to, String subject, String headerColor, String bodyContent) {
         try {
-            String html = buildHtml(subject, headerColor, bodyContent);
-            CreateEmailOptions options = CreateEmailOptions.builder()
-                    .from(fromEmail)
-                    .to(to)
-                    .subject(subject)
-                    .html(html)
-                    .build();
-            resend.emails().send(options);
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setFrom(fromEmail, fromName);
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(buildHtml(subject, headerColor, bodyContent), true);
+            mailSender.send(message);
             log.info("Email '{}' enviado a {}", subject, to);
-        } catch (ResendException e) {
+        } catch (Exception e) {
             log.error("Error enviando email '{}' a {}: {}", subject, to, e.getMessage());
         }
     }
@@ -249,7 +250,7 @@ public class EmailService {
                       <!-- Header -->
                       <tr>
                         <td style="background:%s;padding:28px 32px;">
-                          <p style="margin:0;font-size:13px;color:rgba(255,255,255,0.7);letter-spacing:1px;text-transform:uppercase;">BarberShop</p>
+                          <p style="margin:0;font-size:13px;color:rgba(255,255,255,0.7);letter-spacing:1px;text-transform:uppercase;">WeServ</p>
                           <p style="margin:6px 0 0;font-size:22px;font-weight:700;color:#ffffff;">%s</p>
                         </td>
                       </tr>
@@ -265,7 +266,7 @@ public class EmailService {
                       <tr>
                         <td style="background:#f9fafb;padding:20px 32px;border-top:1px solid #e5e7eb;">
                           <p style="margin:0;font-size:12px;color:#9ca3af;text-align:center;">
-                            © 2025 BarberShop · Este correo fue enviado automáticamente, no respondas a este mensaje.
+                            © 2025 WeServ · Este correo fue enviado automáticamente, no respondas a este mensaje.
                           </p>
                         </td>
                       </tr>

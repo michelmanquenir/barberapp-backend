@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.annotation.Order;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -21,12 +23,19 @@ import org.springframework.stereotype.Component;
 public class SchemaMigrationRunner implements ApplicationRunner {
 
     private final JdbcTemplate jdbc;
+    private final ApplicationContext applicationContext;
 
     @Override
     public void run(ApplicationArguments args) {
+        // Si el contexto ya está siendo destruido (shutdown en curso) no ejecutar migraciones
+        if (applicationContext instanceof ConfigurableApplicationContext ctx && !ctx.isActive()) {
+            log.warn("SchemaMigrationRunner: contexto inactivo, se omiten migraciones");
+            return;
+        }
         dropUniqueConstraintBarberScheduleDay();
         allowNullProductName();
         insertTransporteCategory();
+        addTransportEventCoords();
     }
 
     /**
@@ -80,6 +89,20 @@ public class SchemaMigrationRunner implements ApplicationRunner {
             }
         } catch (Exception e) {
             log.warn("SchemaMigration: no se pudo insertar categoría 'Transporte' — {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Agrega columnas latitude/longitude a transport_events si no existen.
+     * Necesario para el cálculo de tarifa de transporte sin geocoding.
+     */
+    private void addTransportEventCoords() {
+        try {
+            jdbc.execute("ALTER TABLE transport_events ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION");
+            jdbc.execute("ALTER TABLE transport_events ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION");
+            log.info("SchemaMigration: transport_events.latitude/longitude verificadas");
+        } catch (Exception e) {
+            log.debug("SchemaMigration: transport_events coords — {}", e.getMessage());
         }
     }
 
