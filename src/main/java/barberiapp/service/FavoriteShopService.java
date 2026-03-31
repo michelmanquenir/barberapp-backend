@@ -8,6 +8,7 @@ import barberiapp.repository.FavoriteShopRepository;
 import barberiapp.repository.ProfileRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -20,10 +21,12 @@ public class FavoriteShopService {
     private final ProfileRepository profileRepository;
     private final BarberShopRepository shopRepository;
 
+    @Transactional(readOnly = true)
     public List<FavoriteShop> getUserFavoriteShops(String userId) {
         return favoriteShopRepository.findByUserId(userId);
     }
 
+    @Transactional
     public FavoriteShop addFavoriteShop(String userId, String shopId) {
         Optional<FavoriteShop> existing = favoriteShopRepository
                 .findByUserIdAndShopId(userId, shopId);
@@ -40,6 +43,7 @@ public class FavoriteShopService {
         return favoriteShopRepository.save(fav);
     }
 
+    @Transactional
     public void removeFavoriteShop(Long favoriteId, String userId) {
         FavoriteShop fav = favoriteShopRepository.findById(favoriteId)
                 .orElseThrow(() -> new RuntimeException("Favorito no encontrado"));
