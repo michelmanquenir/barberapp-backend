@@ -1,5 +1,6 @@
 package barberiapp.service;
 
+import barberiapp.dto.FavoriteShopDto;
 import barberiapp.model.BarberShop;
 import barberiapp.model.FavoriteShop;
 import barberiapp.model.Profile;
@@ -22,15 +23,18 @@ public class FavoriteShopService {
     private final BarberShopRepository shopRepository;
 
     @Transactional(readOnly = true)
-    public List<FavoriteShop> getUserFavoriteShops(String userId) {
-        return favoriteShopRepository.findByUserId(userId);
+    public List<FavoriteShopDto> getUserFavoriteShops(String userId) {
+        return favoriteShopRepository.findByUserId(userId)
+                .stream()
+                .map(FavoriteShopDto::from)
+                .toList();
     }
 
     @Transactional
-    public FavoriteShop addFavoriteShop(String userId, String shopId) {
+    public FavoriteShopDto addFavoriteShop(String userId, String shopId) {
         Optional<FavoriteShop> existing = favoriteShopRepository
                 .findByUserIdAndShopId(userId, shopId);
-        if (existing.isPresent()) return existing.get();
+        if (existing.isPresent()) return FavoriteShopDto.from(existing.get());
 
         Profile profile = profileRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
@@ -40,7 +44,7 @@ public class FavoriteShopService {
         FavoriteShop fav = new FavoriteShop();
         fav.setUser(profile);
         fav.setShop(shop);
-        return favoriteShopRepository.save(fav);
+        return FavoriteShopDto.from(favoriteShopRepository.save(fav));
     }
 
     @Transactional

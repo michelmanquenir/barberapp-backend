@@ -1,6 +1,6 @@
 package barberiapp.controller;
 
-import barberiapp.model.FavoriteShop;
+import barberiapp.dto.FavoriteShopDto;
 import barberiapp.service.FavoriteShopService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,13 +17,13 @@ public class FavoriteShopController {
 
     /** GET /api/favorite-shops?userId= — listar favoritos del usuario */
     @GetMapping
-    public List<FavoriteShop> getFavoriteShops(@RequestParam String userId) {
+    public List<FavoriteShopDto> getFavoriteShops(@RequestParam String userId) {
         return favoriteShopService.getUserFavoriteShops(userId);
     }
 
     /** POST /api/favorite-shops/{shopId}?userId= — agregar shop a favoritos */
     @PostMapping("/{shopId}")
-    public FavoriteShop addFavoriteShop(
+    public FavoriteShopDto addFavoriteShop(
             @RequestParam String userId,
             @PathVariable String shopId) {
         return favoriteShopService.addFavoriteShop(userId, shopId);
