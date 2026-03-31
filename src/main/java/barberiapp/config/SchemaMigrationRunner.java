@@ -36,6 +36,7 @@ public class SchemaMigrationRunner implements ApplicationRunner {
         allowNullProductName();
         insertTransporteCategory();
         addTransportEventCoords();
+        createShopGalleryImagesTable();
     }
 
     /**
@@ -103,6 +104,31 @@ public class SchemaMigrationRunner implements ApplicationRunner {
             log.info("SchemaMigration: transport_events.latitude/longitude verificadas");
         } catch (Exception e) {
             log.debug("SchemaMigration: transport_events coords — {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Crea la tabla shop_gallery_images si no existe.
+     * Almacena las fotos del negocio (máx. 20 por negocio).
+     */
+    private void createShopGalleryImagesTable() {
+        try {
+            jdbc.execute("""
+                CREATE TABLE IF NOT EXISTS shop_gallery_images (
+                    id             BIGSERIAL PRIMARY KEY,
+                    shop_id        VARCHAR(36)  NOT NULL,
+                    image_url      TEXT         NOT NULL,
+                    caption        VARCHAR(300),
+                    display_order  INT          NOT NULL DEFAULT 0,
+                    created_at     TIMESTAMP    NOT NULL DEFAULT NOW()
+                )
+                """);
+            jdbc.execute(
+                "CREATE INDEX IF NOT EXISTS idx_shop_gallery_shop_id ON shop_gallery_images(shop_id)"
+            );
+            log.info("SchemaMigration: tabla shop_gallery_images verificada");
+        } catch (Exception e) {
+            log.debug("SchemaMigration: shop_gallery_images — {}", e.getMessage());
         }
     }
 

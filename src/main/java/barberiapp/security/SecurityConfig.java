@@ -60,6 +60,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/shops/*/services").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/shops/*/products").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/shops/*/subscription-plans").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/shops/*/gallery").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/appointments/booked-barbers").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/barbers/*/galleries").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/transport/shops/*/events").permitAll()
