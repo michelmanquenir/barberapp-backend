@@ -293,7 +293,10 @@ public class TransportService {
     public List<TransportEventResponse> getPublicEventsByShop(String slug) {
         BarberShop shop = barberShopRepository.findBySlug(slug)
                 .orElseThrow(() -> new IllegalArgumentException("Negocio no encontrado"));
+        // Solo mostrar eventos cuya fecha sea hoy o futura
+        LocalDateTime startOfToday = LocalDateTime.now().toLocalDate().atStartOfDay();
         return eventRepository.findByShopIdAndActiveOrderByEventDateAsc(shop.getId(), true).stream()
+                .filter(e -> e.getEventDate() == null || !e.getEventDate().isBefore(startOfToday))
                 .map(e -> toEventResponse(e, assignmentRepository.findByEventId(e.getId()).size()))
                 .collect(Collectors.toList());
     }
