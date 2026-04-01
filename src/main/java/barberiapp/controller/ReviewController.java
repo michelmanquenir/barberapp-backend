@@ -69,6 +69,17 @@ public class ReviewController {
         }
     }
 
+    /** Todas las reseñas de un pedido — requiere auth */
+    @GetMapping("/order/{orderId}")
+    public ResponseEntity<?> getOrderReviews(@PathVariable Long orderId) {
+        try {
+            List<ReviewResponse> reviews = reviewService.getOrderReviews(orderId);
+            return ResponseEntity.ok(reviews);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     // ─── Helper ────────────────────────────────────────────────────────────────
 
     private String getCurrentUserId() {

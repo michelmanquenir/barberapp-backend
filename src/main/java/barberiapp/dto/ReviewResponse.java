@@ -13,6 +13,7 @@ public class ReviewResponse {
 
     private Long id;
     private Long appointmentId;
+    private Long orderId;
     private String reviewType;
 
     private String reviewerUserId;

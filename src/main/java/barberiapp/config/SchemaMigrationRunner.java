@@ -37,6 +37,7 @@ public class SchemaMigrationRunner implements ApplicationRunner {
         insertTransporteCategory();
         addTransportEventCoords();
         createShopGalleryImagesTable();
+        addOrderIdToReviews();
     }
 
     /**
@@ -129,6 +130,20 @@ public class SchemaMigrationRunner implements ApplicationRunner {
             log.info("SchemaMigration: tabla shop_gallery_images verificada");
         } catch (Exception e) {
             log.debug("SchemaMigration: shop_gallery_images — {}", e.getMessage());
+        }
+    }
+
+    private void addOrderIdToReviews() {
+        try {
+            jdbc.execute(
+                "ALTER TABLE reviews ADD COLUMN IF NOT EXISTS order_id BIGINT"
+            );
+            jdbc.execute(
+                "ALTER TABLE reviews ALTER COLUMN appointment_id DROP NOT NULL"
+            );
+            log.info("SchemaMigration: reviews.order_id agregado, appointment_id ahora nullable");
+        } catch (Exception e) {
+            log.debug("SchemaMigration: addOrderIdToReviews — {}", e.getMessage());
         }
     }
 

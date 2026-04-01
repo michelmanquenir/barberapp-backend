@@ -18,8 +18,13 @@ public class Review {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "appointment_id", nullable = false)
+    /** ID de la cita (nullable si es reseña de pedido) */
+    @Column(name = "appointment_id")
     private Long appointmentId;
+
+    /** ID del pedido (nullable si es reseña de cita) */
+    @Column(name = "order_id")
+    private Long orderId;
 
     /**
      * Tipo de reseña:

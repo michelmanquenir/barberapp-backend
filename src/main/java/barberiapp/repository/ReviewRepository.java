@@ -23,4 +23,10 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     /** Verifica si ya existe una reseña de ese tipo para esa cita */
     boolean existsByAppointmentIdAndReviewType(Long appointmentId, String reviewType);
+
+    /** Todas las reseñas de un pedido específico */
+    List<Review> findByOrderId(Long orderId);
+
+    /** Verifica si ya existe una reseña de ese tipo para ese pedido */
+    boolean existsByOrderIdAndReviewType(Long orderId, String reviewType);
 }

@@ -11,6 +11,9 @@ public class ReviewRequest {
 
     private Long appointmentId;
 
+    /** ID del pedido (para reseñas de compras) */
+    private Long orderId;
+
     /** CLIENT_TO_BARBER | CLIENT_TO_SHOP | BARBER_TO_CLIENT */
     private String reviewType;
 
