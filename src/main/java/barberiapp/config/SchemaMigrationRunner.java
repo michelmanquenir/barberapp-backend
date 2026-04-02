@@ -38,6 +38,7 @@ public class SchemaMigrationRunner implements ApplicationRunner {
         addTransportEventCoords();
         createShopGalleryImagesTable();
         addOrderIdToReviews();
+        createGymTables();
     }
 
     /**
@@ -144,6 +145,108 @@ public class SchemaMigrationRunner implements ApplicationRunner {
             log.info("SchemaMigration: reviews.order_id agregado, appointment_id ahora nullable");
         } catch (Exception e) {
             log.debug("SchemaMigration: addOrderIdToReviews — {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Crea las 4 tablas del módulo Gym/Boxing si no existen.
+     */
+    private void createGymTables() {
+        try {
+            jdbc.execute("""
+                CREATE TABLE IF NOT EXISTS gym_members (
+                    id                      BIGSERIAL PRIMARY KEY,
+                    shop_id                 VARCHAR(36)  NOT NULL,
+                    name                    VARCHAR(100) NOT NULL,
+                    email                   VARCHAR(200),
+                    phone                   VARCHAR(30),
+                    rut                     VARCHAR(20),
+                    birth_date              DATE,
+                    join_date               DATE,
+                    status                  VARCHAR(20)  NOT NULL DEFAULT 'active',
+                    photo_url               TEXT,
+                    emergency_contact_name  VARCHAR(100),
+                    emergency_contact_phone VARCHAR(30),
+                    medical_notes           TEXT,
+                    has_taken_trial_class   BOOLEAN      NOT NULL DEFAULT FALSE,
+                    created_at              TIMESTAMP    NOT NULL DEFAULT NOW(),
+                    updated_at              TIMESTAMP    NOT NULL DEFAULT NOW()
+                )
+                """);
+            jdbc.execute(
+                "CREATE INDEX IF NOT EXISTS idx_gym_members_shop_id ON gym_members(shop_id)"
+            );
+
+            jdbc.execute("""
+                CREATE TABLE IF NOT EXISTS gym_memberships (
+                    id              BIGSERIAL PRIMARY KEY,
+                    member_id       BIGINT       NOT NULL,
+                    shop_id         VARCHAR(36)  NOT NULL,
+                    plan_name       VARCHAR(100),
+                    monthly_price   INTEGER,
+                    visits_allowed  INTEGER,
+                    visits_used     INTEGER      NOT NULL DEFAULT 0,
+                    start_date      DATE,
+                    end_date        DATE,
+                    status          VARCHAR(20)  NOT NULL DEFAULT 'active',
+                    payment_status  VARCHAR(20)  NOT NULL DEFAULT 'pending',
+                    notes           TEXT,
+                    created_at      TIMESTAMP    NOT NULL DEFAULT NOW(),
+                    updated_at      TIMESTAMP    NOT NULL DEFAULT NOW()
+                )
+                """);
+            jdbc.execute(
+                "CREATE INDEX IF NOT EXISTS idx_gym_memberships_member_id ON gym_memberships(member_id)"
+            );
+            jdbc.execute(
+                "CREATE INDEX IF NOT EXISTS idx_gym_memberships_shop_id ON gym_memberships(shop_id)"
+            );
+
+            jdbc.execute("""
+                CREATE TABLE IF NOT EXISTS gym_attendance (
+                    id               BIGSERIAL PRIMARY KEY,
+                    member_id        BIGINT       NOT NULL,
+                    shop_id          VARCHAR(36)  NOT NULL,
+                    attendance_date  DATE         NOT NULL,
+                    check_in_time    TIME,
+                    class_type       VARCHAR(100),
+                    is_trial_class   BOOLEAN      NOT NULL DEFAULT FALSE,
+                    notes            TEXT,
+                    created_at       TIMESTAMP    NOT NULL DEFAULT NOW()
+                )
+                """);
+            jdbc.execute(
+                "CREATE INDEX IF NOT EXISTS idx_gym_attendance_member_id ON gym_attendance(member_id)"
+            );
+            jdbc.execute(
+                "CREATE INDEX IF NOT EXISTS idx_gym_attendance_shop_date ON gym_attendance(shop_id, attendance_date)"
+            );
+
+            jdbc.execute("""
+                CREATE TABLE IF NOT EXISTS gym_progress_records (
+                    id           BIGSERIAL PRIMARY KEY,
+                    member_id    BIGINT       NOT NULL,
+                    shop_id      VARCHAR(36)  NOT NULL,
+                    record_date  DATE         NOT NULL,
+                    weight_kg    DOUBLE PRECISION,
+                    height_cm    DOUBLE PRECISION,
+                    body_fat_pct DOUBLE PRECISION,
+                    chest_cm     DOUBLE PRECISION,
+                    waist_cm     DOUBLE PRECISION,
+                    hips_cm      DOUBLE PRECISION,
+                    bicep_cm     DOUBLE PRECISION,
+                    thigh_cm     DOUBLE PRECISION,
+                    notes        TEXT,
+                    created_at   TIMESTAMP    NOT NULL DEFAULT NOW()
+                )
+                """);
+            jdbc.execute(
+                "CREATE INDEX IF NOT EXISTS idx_gym_progress_member_id ON gym_progress_records(member_id)"
+            );
+
+            log.info("SchemaMigration: tablas gym verificadas/creadas correctamente");
+        } catch (Exception e) {
+            log.warn("SchemaMigration: createGymTables — {}", e.getMessage());
         }
     }
 
