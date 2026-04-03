@@ -13,4 +13,5 @@ public class AuthResponse {
     private String fullName;
     private String avatarUrl;
     private String status;
+    private Boolean mustChangePassword;
 }

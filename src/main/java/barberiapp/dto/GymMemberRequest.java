@@ -16,4 +16,10 @@ public class GymMemberRequest {
     private LocalDate joinDate;
     private String status;
     private String photoUrl;
+
+    /**
+     * Si es true y el miembro tiene email, se crea una cuenta de usuario en la app
+     * con contraseña provisional y se le envía un correo con las credenciales.
+     */
+    private boolean createAppAccount;
 }

@@ -13,6 +13,7 @@ import barberiapp.service.AuthService;
 import barberiapp.service.EmailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -137,6 +138,41 @@ public class AuthController {
         // Marcar token como usado
         token.setUsed(true);
         tokenRepo.save(token);
+
+        return ResponseEntity.ok(Map.of("message", "Contraseña actualizada correctamente"));
+    }
+
+    /**
+     * Cambio de contraseña forzado (primer login con contraseña provisional).
+     * Requiere autenticación. Verifica la contraseña actual y setea la nueva,
+     * limpiando el flag mustChangePassword.
+     */
+    @PostMapping("/change-password")
+    public ResponseEntity<?> changePassword(@RequestBody Map<String, String> body) {
+        String currentPassword = body.get("currentPassword");
+        String newPassword     = body.get("newPassword");
+
+        if (currentPassword == null || newPassword == null ||
+            currentPassword.isBlank() || newPassword.isBlank())
+            return ResponseEntity.badRequest().body(Map.of("error", "Todos los campos son requeridos"));
+
+        if (newPassword.length() < 6)
+            return ResponseEntity.badRequest().body(Map.of("error", "La nueva contraseña debe tener al menos 6 caracteres"));
+
+        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
+        AppUser user = userRepo.findById(userId).orElse(null);
+        if (user == null)
+            return ResponseEntity.badRequest().body(Map.of("error", "Usuario no encontrado"));
+
+        if (!passwordEncoder.matches(currentPassword, user.getPasswordHash()))
+            return ResponseEntity.badRequest().body(Map.of("error", "La contraseña actual es incorrecta"));
+
+        if (currentPassword.equals(newPassword))
+            return ResponseEntity.badRequest().body(Map.of("error", "La nueva contraseña debe ser diferente a la actual"));
+
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        user.setMustChangePassword(false);
+        userRepo.save(user);
 
         return ResponseEntity.ok(Map.of("message", "Contraseña actualizada correctamente"));
     }

@@ -39,6 +39,7 @@ public class SchemaMigrationRunner implements ApplicationRunner {
         createShopGalleryImagesTable();
         addOrderIdToReviews();
         createGymTables();
+        addMustChangePasswordColumn();
     }
 
     /**
@@ -247,6 +248,19 @@ public class SchemaMigrationRunner implements ApplicationRunner {
             log.info("SchemaMigration: tablas gym verificadas/creadas correctamente");
         } catch (Exception e) {
             log.warn("SchemaMigration: createGymTables — {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Agrega la columna must_change_password a app_users si no existe.
+     * Se usa para marcar cuentas creadas por el gym con contraseña provisional.
+     */
+    private void addMustChangePasswordColumn() {
+        try {
+            jdbc.execute("ALTER TABLE app_users ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN NOT NULL DEFAULT FALSE");
+            log.info("SchemaMigration: app_users.must_change_password verificada");
+        } catch (Exception e) {
+            log.debug("SchemaMigration: addMustChangePasswordColumn — {}", e.getMessage());
         }
     }
 

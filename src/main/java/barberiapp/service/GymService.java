@@ -4,12 +4,15 @@ import barberiapp.dto.*;
 import barberiapp.model.*;
 import barberiapp.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -21,6 +24,21 @@ public class GymService {
     private final GymAttendanceRepository attendanceRepo;
     private final GymProgressRepository progressRepo;
     private final BarberShopRepository shopRepo;
+    private final AppUserRepository userRepo;
+    private final ProfileRepository profileRepo;
+    private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
+
+    private static final String TEMP_PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#$!";
+    private static final SecureRandom RANDOM = new SecureRandom();
+
+    private String generateTempPassword() {
+        StringBuilder sb = new StringBuilder(10);
+        for (int i = 0; i < 10; i++) {
+            sb.append(TEMP_PASSWORD_CHARS.charAt(RANDOM.nextInt(TEMP_PASSWORD_CHARS.length())));
+        }
+        return sb.toString();
+    }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
@@ -64,6 +82,7 @@ public class GymService {
     public GymMemberResponse createMember(String shopId, GymMemberRequest req) {
         if (req.getName() == null || req.getName().isBlank())
             throw new IllegalArgumentException("El nombre es obligatorio");
+
         GymMember m = GymMember.builder()
                 .shopId(shopId)
                 .name(req.getName().trim())
@@ -78,7 +97,47 @@ public class GymService {
                 .status(req.getStatus() != null ? req.getStatus() : "active")
                 .photoUrl(req.getPhotoUrl())
                 .build();
-        return GymMemberResponse.from(memberRepo.save(m));
+        memberRepo.save(m);
+
+        // ── Crear cuenta en la app con contraseña provisional ─────────────────
+        if (req.isCreateAppAccount()) {
+            if (req.getEmail() == null || req.getEmail().isBlank())
+                throw new IllegalArgumentException("El email es obligatorio para crear una cuenta en la app");
+
+            String email = req.getEmail().trim().toLowerCase();
+
+            if (userRepo.findByEmail(email).isPresent())
+                throw new IllegalArgumentException("Ya existe una cuenta con el email " + email);
+
+            String tempPassword = generateTempPassword();
+            String userId = UUID.randomUUID().toString();
+
+            AppUser newUser = AppUser.builder()
+                    .id(userId)
+                    .email(email)
+                    .rut(req.getRut() != null ? req.getRut().trim().toUpperCase() : null)
+                    .passwordHash(passwordEncoder.encode(tempPassword))
+                    .role(UserRole.CLIENT)
+                    .status(UserStatus.ACTIVE)   // aprobado directo: el gym lo está registrando
+                    .mustChangePassword(true)
+                    .build();
+            userRepo.save(newUser);
+
+            Profile profile = new Profile();
+            profile.setId(userId);
+            profile.setAppUser(newUser);
+            profile.setFullName(req.getName().trim());
+            profileRepo.save(profile);
+
+            // Obtener nombre del negocio para el email
+            String shopName = shopRepo.findById(shopId)
+                    .map(BarberShop::getName)
+                    .orElse("WeServ");
+
+            emailService.sendGymMemberWelcome(email, req.getName().trim(), shopName, tempPassword);
+        }
+
+        return GymMemberResponse.from(m);
     }
 
     @Transactional

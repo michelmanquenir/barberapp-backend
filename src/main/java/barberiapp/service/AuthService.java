@@ -99,7 +99,7 @@ public class AuthService {
         // Notificar al super admin que hay un nuevo usuario pendiente de aprobación
         emailService.sendNewUserRegisteredToAdmin(req.getFullName(), user.getEmail(), role.name());
 
-        return new AuthResponse(token, id, user.getEmail(), role.name(), req.getFullName(), null, status.name());
+        return new AuthResponse(token, id, user.getEmail(), role.name(), req.getFullName(), null, status.name(), false);
     }
 
     public AuthResponse login(LoginRequest req) {
@@ -116,6 +116,7 @@ public class AuthService {
         UserStatus status = user.getStatus() != null ? user.getStatus() : UserStatus.PENDING;
 
         String token = jwtUtil.generateToken(user);
-        return new AuthResponse(token, user.getId(), user.getEmail(), user.getRole().name(), fullName, avatarUrl, status.name());
+        boolean mustChange = Boolean.TRUE.equals(user.getMustChangePassword());
+        return new AuthResponse(token, user.getId(), user.getEmail(), user.getRole().name(), fullName, avatarUrl, status.name(), mustChange);
     }
 }

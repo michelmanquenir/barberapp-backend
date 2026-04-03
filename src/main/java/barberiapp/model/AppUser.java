@@ -41,6 +41,11 @@ public class AppUser {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    /** Si es true, el usuario debe cambiar su contraseña en el primer inicio de sesión. */
+    @Column(name = "must_change_password", nullable = false)
+    @Builder.Default
+    private Boolean mustChangePassword = false;
+
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) {
