@@ -40,6 +40,7 @@ public class SchemaMigrationRunner implements ApplicationRunner {
         addOrderIdToReviews();
         createGymTables();
         addMustChangePasswordColumn();
+        addSourceColumnToShopOrders();
     }
 
     /**
@@ -261,6 +262,20 @@ public class SchemaMigrationRunner implements ApplicationRunner {
             log.info("SchemaMigration: app_users.must_change_password verificada");
         } catch (Exception e) {
             log.debug("SchemaMigration: addMustChangePasswordColumn — {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Agrega la columna source a shop_orders si no existe.
+     * "web" = pedido online del cliente, "pos" = venta directa en caja.
+     * Si la tabla ya tenía filas, las existentes quedan con el valor DEFAULT 'web'.
+     */
+    private void addSourceColumnToShopOrders() {
+        try {
+            jdbc.execute("ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS source VARCHAR(10) DEFAULT 'web'");
+            log.info("SchemaMigration: shop_orders.source verificada");
+        } catch (Exception e) {
+            log.debug("SchemaMigration: addSourceColumnToShopOrders — {}", e.getMessage());
         }
     }
 
