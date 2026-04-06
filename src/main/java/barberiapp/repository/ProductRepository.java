@@ -40,4 +40,18 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     /** POS: buscar producto activo por barcode del catálogo global dentro de un negocio */
     @Query("SELECT p FROM Product p LEFT JOIN FETCH p.globalProduct gp WHERE p.shopId = :shopId AND gp.barcode = :barcode AND p.active = true")
     Optional<Product> findByShopIdAndGlobalBarcodeAndActive(@Param("shopId") String shopId, @Param("barcode") String barcode);
+
+    // ── Validación de unicidad ────────────────────────────────────────────────
+
+    /** Verifica si existe otro producto con el mismo nombre (case-insensitive) en el negocio */
+    @Query("SELECT COUNT(p) > 0 FROM Product p WHERE p.shopId = :shopId AND LOWER(p.name) = LOWER(:name) AND p.id <> :excludeId")
+    boolean existsByShopIdAndNameIgnoreCaseExcluding(@Param("shopId") String shopId, @Param("name") String name, @Param("excludeId") Long excludeId);
+
+    /** Verifica si existe otro producto con el mismo código de barras en el negocio */
+    @Query("SELECT COUNT(p) > 0 FROM Product p WHERE p.shopId = :shopId AND p.barcode = :barcode AND p.id <> :excludeId")
+    boolean existsByShopIdAndBarcodeExcluding(@Param("shopId") String shopId, @Param("barcode") String barcode, @Param("excludeId") Long excludeId);
+
+    /** Verifica si existe otro producto con el mismo SKU en el negocio */
+    @Query("SELECT COUNT(p) > 0 FROM Product p WHERE p.shopId = :shopId AND p.sku = :sku AND p.id <> :excludeId")
+    boolean existsByShopIdAndSkuExcluding(@Param("shopId") String shopId, @Param("sku") String sku, @Param("excludeId") Long excludeId);
 }

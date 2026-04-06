@@ -65,6 +65,23 @@ public class ProductService {
         if (p.getGlobalProduct() == null && (p.getName() == null || p.getName().isBlank()))
             throw new IllegalArgumentException("El nombre es requerido cuando no se vincula a un producto del catálogo");
 
+        // Validación de unicidad (solo para productos locales, los del catálogo se controlan a otro nivel)
+        if (p.getGlobalProduct() == null) {
+            long excludeId = -1L; // -1 → ningún producto tiene ese ID → no excluye nada al crear
+            if (p.getName() != null && !p.getName().isBlank()
+                    && productRepository.existsByShopIdAndNameIgnoreCaseExcluding(shopId, p.getName(), excludeId)) {
+                throw new IllegalArgumentException("Ya existe un producto con el nombre \"" + p.getName() + "\" en este negocio.");
+            }
+            if (p.getBarcode() != null && !p.getBarcode().isBlank()
+                    && productRepository.existsByShopIdAndBarcodeExcluding(shopId, p.getBarcode(), excludeId)) {
+                throw new IllegalArgumentException("El código de barras \"" + p.getBarcode() + "\" ya está asignado a otro producto.");
+            }
+            if (p.getSku() != null && !p.getSku().isBlank()
+                    && productRepository.existsByShopIdAndSkuExcluding(shopId, p.getSku(), excludeId)) {
+                throw new IllegalArgumentException("El SKU \"" + p.getSku() + "\" ya está en uso por otro producto.");
+            }
+        }
+
         // Productos del catálogo global ya fueron revisados por el super admin:
         // se aprueban automáticamente sin necesidad de revisión adicional.
         if (p.getGlobalProduct() != null) {
@@ -79,6 +96,19 @@ public class ProductService {
         Product p = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
         applyRequest(p, req);
+
+        // Validación de unicidad al editar (excluyendo el propio producto)
+        if (p.getGlobalProduct() == null) {
+            if (p.getBarcode() != null && !p.getBarcode().isBlank()
+                    && productRepository.existsByShopIdAndBarcodeExcluding(p.getShopId(), p.getBarcode(), productId)) {
+                throw new IllegalArgumentException("El código de barras \"" + p.getBarcode() + "\" ya está asignado a otro producto.");
+            }
+            if (p.getSku() != null && !p.getSku().isBlank()
+                    && productRepository.existsByShopIdAndSkuExcluding(p.getShopId(), p.getSku(), productId)) {
+                throw new IllegalArgumentException("El SKU \"" + p.getSku() + "\" ya está en uso por otro producto.");
+            }
+        }
+
         return ShopProductResponse.from(productRepository.save(p));
     }
 
