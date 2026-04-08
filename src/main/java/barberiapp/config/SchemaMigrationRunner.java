@@ -41,6 +41,8 @@ public class SchemaMigrationRunner implements ApplicationRunner {
         createGymTables();
         addMustChangePasswordColumn();
         addSourceColumnToShopOrders();
+        createGymClassesTable();
+        createGymClassEnrollmentsTable();
     }
 
     /**
@@ -276,6 +278,50 @@ public class SchemaMigrationRunner implements ApplicationRunner {
             log.info("SchemaMigration: shop_orders.source verificada");
         } catch (Exception e) {
             log.debug("SchemaMigration: addSourceColumnToShopOrders — {}", e.getMessage());
+        }
+    }
+
+    private void createGymClassesTable() {
+        try {
+            jdbc.execute("""
+                CREATE TABLE IF NOT EXISTS gym_classes (
+                    id BIGSERIAL PRIMARY KEY,
+                    shop_id VARCHAR(255) NOT NULL,
+                    name VARCHAR(255) NOT NULL,
+                    class_type VARCHAR(100),
+                    instructor_name VARCHAR(255),
+                    day_of_week VARCHAR(20) NOT NULL,
+                    start_time VARCHAR(10) NOT NULL,
+                    end_time VARCHAR(10) NOT NULL,
+                    max_capacity INTEGER,
+                    description TEXT,
+                    color VARCHAR(20) DEFAULT '#6366f1',
+                    active BOOLEAN DEFAULT TRUE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """);
+            log.info("SchemaMigration: gym_classes verificada");
+        } catch (Exception e) {
+            log.debug("SchemaMigration: createGymClassesTable — {}", e.getMessage());
+        }
+    }
+
+    private void createGymClassEnrollmentsTable() {
+        try {
+            jdbc.execute("""
+                CREATE TABLE IF NOT EXISTS gym_class_enrollments (
+                    id BIGSERIAL PRIMARY KEY,
+                    class_id BIGINT NOT NULL,
+                    member_id BIGINT NOT NULL,
+                    shop_id VARCHAR(255) NOT NULL,
+                    enrolled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE (class_id, member_id)
+                )
+            """);
+            log.info("SchemaMigration: gym_class_enrollments verificada");
+        } catch (Exception e) {
+            log.debug("SchemaMigration: createGymClassEnrollmentsTable — {}", e.getMessage());
         }
     }
 
