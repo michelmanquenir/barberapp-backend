@@ -246,16 +246,18 @@ public class SuperAdminController {
                 .map(BarberShop::getName).orElse(product.getShopId());
         return Map.ofEntries(
                 Map.entry("id",             (Object) product.getId()),
-                Map.entry("name",           product.getName()),
+                Map.entry("name",           product.getName()        != null ? product.getName()        : ""),
                 Map.entry("description",    product.getDescription() != null ? product.getDescription() : ""),
                 Map.entry("category",       product.getCategory()    != null ? product.getCategory()    : ""),
                 Map.entry("imageUrl",       product.getImageUrl()    != null ? product.getImageUrl()    : ""),
+                Map.entry("barcode",        product.getBarcode()     != null ? product.getBarcode()     : ""),
+                Map.entry("sku",            product.getSku()         != null ? product.getSku()         : ""),
                 Map.entry("salePrice",      (Object)(product.getSalePrice()  != null ? product.getSalePrice()  : 0)),
                 Map.entry("stock",          (Object)(product.getStock()      != null ? product.getStock()      : 0)),
                 Map.entry("approvalStatus", status.name()),
-                Map.entry("shopName",       shopName),
-                Map.entry("shopId",         product.getShopId()),
-                Map.entry("createdAt",      product.getCreatedAt() != null ? product.getCreatedAt().toString() : "")
+                Map.entry("shopName",       shopName != null ? shopName : ""),
+                Map.entry("shopId",         product.getShopId()      != null ? product.getShopId()      : ""),
+                Map.entry("createdAt",      product.getCreatedAt()   != null ? product.getCreatedAt().toString() : "")
         );
     }
 
