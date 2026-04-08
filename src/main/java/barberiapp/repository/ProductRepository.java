@@ -27,11 +27,11 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findPublicApproved(@Param("shopId") String shopId, @Param("approved") ApprovalStatus approved);
 
     /** Super admin: todos los productos de todos los negocios */
-    @Query("SELECT p FROM Product p ORDER BY p.createdAt DESC")
+    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.globalProduct ORDER BY p.createdAt DESC")
     List<Product> findAllOrderByCreatedAtDesc();
 
     /** Super admin: todos los productos filtrados por approvalStatus */
-    @Query("SELECT p FROM Product p WHERE p.approvalStatus = :status ORDER BY p.createdAt DESC")
+    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.globalProduct WHERE p.approvalStatus = :status ORDER BY p.createdAt DESC")
     List<Product> findByApprovalStatus(@Param("status") ApprovalStatus status);
 
     /** POS: buscar producto activo por código de barras local dentro de un negocio */
