@@ -19,6 +19,9 @@ public class PassengerBookingResponse {
     private Integer seatsBooked;
     private String status;
     private String notes;
+    private String paymentMethod;
+    private Integer totalFare;
+    private Integer amountPaid;
     private LocalDateTime createdAt;
     // Event details (denormalized for convenience)
     private String eventTitle;

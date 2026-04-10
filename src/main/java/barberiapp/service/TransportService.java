@@ -412,6 +412,14 @@ public class TransportService {
             throw new IllegalArgumentException("No hay suficientes asientos disponibles. Disponibles: " + available);
         }
 
+        // Método de pago y tarifa
+        String paymentMethod = req.getPaymentMethod() != null ? req.getPaymentMethod() : "EFECTIVO";
+        Integer totalFare = req.getTotalFare(); // puede ser null si precio a convenir
+        int amountPaid = 0;
+        if (totalFare != null && !"EFECTIVO".equalsIgnoreCase(paymentMethod)) {
+            amountPaid = (int) Math.ceil(totalFare / 2.0); // 50 % de abono
+        }
+
         PassengerBooking booking = PassengerBooking.builder()
                 .assignmentId(assignment.getId())
                 .userId(userId)
@@ -420,6 +428,9 @@ public class TransportService {
                 .seatsBooked(seatsToBook)
                 .status("PENDING")
                 .notes(req.getNotes())
+                .paymentMethod(paymentMethod)
+                .totalFare(totalFare)
+                .amountPaid(amountPaid)
                 .build();
 
         PassengerBooking saved = bookingRepository.save(booking);
@@ -586,6 +597,9 @@ public class TransportService {
                 .seatsBooked(b.getSeatsBooked())
                 .status(b.getStatus())
                 .notes(b.getNotes())
+                .paymentMethod(b.getPaymentMethod())
+                .totalFare(b.getTotalFare())
+                .amountPaid(b.getAmountPaid())
                 .createdAt(b.getCreatedAt())
                 .eventTitle(event.getTitle())
                 .eventDate(event.getEventDate())

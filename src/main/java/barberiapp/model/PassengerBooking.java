@@ -43,6 +43,19 @@ public class PassengerBooking {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
+    /** EFECTIVO, TRANSFERENCIA, TARJETA */
+    @Column(name = "payment_method", length = 20)
+    private String paymentMethod;
+
+    /** Tarifa total calculada (fare x seats) */
+    @Column(name = "total_fare")
+    private Integer totalFare;
+
+    /** Monto abonado (50 % si no es efectivo, 0 si es efectivo) */
+    @Builder.Default
+    @Column(name = "amount_paid")
+    private Integer amountPaid = 0;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

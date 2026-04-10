@@ -44,6 +44,7 @@ public class SchemaMigrationRunner implements ApplicationRunner {
         createGymClassesTable();
         createGymClassEnrollmentsTable();
         migrateBarberSpecialtiesToJsonb();
+        addPaymentColumnsToPassengerBookings();
     }
 
     /**
@@ -341,6 +342,17 @@ public class SchemaMigrationRunner implements ApplicationRunner {
         } catch (Exception e) {
             // Ya es jsonb o no existe la columna — ambos casos son correctos
             log.debug("SchemaMigration: migrateBarberSpecialtiesToJsonb — {}", e.getMessage());
+        }
+    }
+
+    private void addPaymentColumnsToPassengerBookings() {
+        try {
+            jdbc.execute("ALTER TABLE passenger_bookings ADD COLUMN IF NOT EXISTS payment_method VARCHAR(20)");
+            jdbc.execute("ALTER TABLE passenger_bookings ADD COLUMN IF NOT EXISTS total_fare INTEGER");
+            jdbc.execute("ALTER TABLE passenger_bookings ADD COLUMN IF NOT EXISTS amount_paid INTEGER DEFAULT 0");
+            log.info("SchemaMigration: passenger_bookings payment columns verificadas");
+        } catch (Exception e) {
+            log.debug("SchemaMigration: addPaymentColumnsToPassengerBookings — {}", e.getMessage());
         }
     }
 
