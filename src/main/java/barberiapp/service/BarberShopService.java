@@ -8,7 +8,10 @@ import barberiapp.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -190,9 +193,25 @@ public class BarberShopService {
         return toResponse(shop, barbers);
     }
 
+    /**
+     * Lista pública de negocios — batch-load de barbers en 2 queries totales
+     * (1 para shops + 1 para todos los members con barbers) en vez de 1+N.
+     */
+    @Transactional(readOnly = true)
     public List<BarberShopResponse> getAllActiveShops() {
-        return shopRepository.findPublicApproved(ApprovalStatus.ACTIVE).stream()
-                .map(shop -> toResponse(shop, getBarbersByShop(shop.getId())))
+        List<BarberShop> shops = shopRepository.findPublicApproved(ApprovalStatus.ACTIVE);
+        if (shops.isEmpty()) return List.of();
+
+        // Batch load: 1 sola query para TODOS los miembros activos con barber
+        List<String> shopIds = shops.stream().map(BarberShop::getId).toList();
+        Map<String, List<Barber>> barbersByShop = new HashMap<>();
+        for (BarberShopMember m : memberRepository.findByShopIdInAndActiveTrueWithBarber(shopIds)) {
+            barbersByShop.computeIfAbsent(m.getShop().getId(), k -> new ArrayList<>())
+                         .add(m.getBarber());
+        }
+
+        return shops.stream()
+                .map(shop -> toResponse(shop, barbersByShop.getOrDefault(shop.getId(), List.of())))
                 .toList();
     }
 
