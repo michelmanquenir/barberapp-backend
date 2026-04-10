@@ -20,4 +20,14 @@ public interface PassengerBookingRepository extends JpaRepository<PassengerBooki
     int sumBookedSeatsByAssignmentId(@Param("assignmentId") Long assignmentId);
 
     List<PassengerBooking> findByAssignmentIdIn(List<Long> assignmentIds);
+
+    /**
+     * Batch: total de asientos reservados por assignmentId (excluye canceladas).
+     * Retorna List de Object[] donde [0] = assignmentId (Long), [1] = sum (Long).
+     */
+    @Query("SELECT b.assignmentId, COALESCE(SUM(b.seatsBooked), 0) " +
+           "FROM PassengerBooking b " +
+           "WHERE b.assignmentId IN :assignmentIds AND b.status <> 'CANCELLED' " +
+           "GROUP BY b.assignmentId")
+    List<Object[]> sumBookedSeatsByAssignmentIds(@Param("assignmentIds") List<Long> assignmentIds);
 }

@@ -10,7 +10,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -209,9 +211,7 @@ public class TransportService {
         TransportEvent event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new IllegalArgumentException("Evento no encontrado"));
         verifyOwnership(event.getShopId(), userId);
-        return assignmentRepository.findByEventId(eventId).stream()
-                .map(a -> toAssignmentResponse(a, event))
-                .collect(Collectors.toList());
+        return buildAssignmentResponses(assignmentRepository.findByEventId(eventId), event);
     }
 
     @Transactional
@@ -305,9 +305,92 @@ public class TransportService {
     public List<EventAssignmentResponse> getPublicAssignments(Long eventId) {
         TransportEvent event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new IllegalArgumentException("Evento no encontrado"));
-        return assignmentRepository.findByEventId(eventId).stream()
-                .map(a -> toAssignmentResponse(a, event))
-                .collect(Collectors.toList());
+        return buildAssignmentResponses(assignmentRepository.findByEventId(eventId), event);
+    }
+
+    /**
+     * Carga vehículos, conductores y conteo de asientos en 3 queries batch
+     * en lugar de 3N queries individuales.
+     */
+    private List<EventAssignmentResponse> buildAssignmentResponses(
+            List<EventVehicleAssignment> assignments, TransportEvent event) {
+
+        if (assignments.isEmpty()) return List.of();
+
+        // 1. Batch load vehicles
+        List<Long> vehicleIds = assignments.stream()
+                .map(EventVehicleAssignment::getVehicleId)
+                .distinct().collect(Collectors.toList());
+        Map<Long, TransportVehicle> vehicleMap = vehicleRepository.findAllById(vehicleIds).stream()
+                .collect(Collectors.toMap(TransportVehicle::getId, v -> v));
+
+        // 2. Batch load drivers
+        List<Long> driverIds = assignments.stream()
+                .map(EventVehicleAssignment::getDriverId)
+                .filter(id -> id != null)
+                .distinct().collect(Collectors.toList());
+        Map<Long, TransportDriver> driverMap = driverIds.isEmpty() ? Map.of()
+                : driverRepository.findAllById(driverIds).stream()
+                        .collect(Collectors.toMap(TransportDriver::getId, d -> d));
+
+        // 3. Batch load seat counts
+        List<Long> assignmentIds = assignments.stream()
+                .map(EventVehicleAssignment::getId).collect(Collectors.toList());
+        Map<Long, Integer> seatsMap = new HashMap<>();
+        for (Object[] row : bookingRepository.sumBookedSeatsByAssignmentIds(assignmentIds)) {
+            Long aId = ((Number) row[0]).longValue();
+            int seats  = ((Number) row[1]).intValue();
+            seatsMap.put(aId, seats);
+        }
+
+        // 4. Map — zero extra queries
+        return assignments.stream().map(a -> {
+            TransportVehicle vehicle = vehicleMap.get(a.getVehicleId());
+            TransportVehicleResponse vehicleResp = null;
+            if (vehicle != null) {
+                String driverName = a.getDriverId() != null
+                        ? driverMap.getOrDefault(a.getDriverId(), null) != null
+                                ? driverMap.get(a.getDriverId()).getName() : null
+                        : null;
+                vehicleResp = toVehicleResponseWithName(vehicle, driverName);
+            }
+
+            TransportDriverResponse driverResp = null;
+            if (a.getDriverId() != null && driverMap.containsKey(a.getDriverId())) {
+                driverResp = toDriverResponse(driverMap.get(a.getDriverId()));
+            }
+
+            int bookedSeats = seatsMap.getOrDefault(a.getId(), 0);
+            int capacity = vehicle != null ? vehicle.getPassengerCapacity() : 0;
+
+            return EventAssignmentResponse.builder()
+                    .id(a.getId())
+                    .eventId(a.getEventId())
+                    .vehicle(vehicleResp)
+                    .driver(driverResp)
+                    .bookedSeats(bookedSeats)
+                    .availableSeats(Math.max(0, capacity - bookedSeats))
+                    .build();
+        }).collect(Collectors.toList());
+    }
+
+    /** Igual que toVehicleResponse pero recibe driverName ya resuelto (sin query extra) */
+    private TransportVehicleResponse toVehicleResponseWithName(TransportVehicle v, String driverName) {
+        return TransportVehicleResponse.builder()
+                .id(v.getId())
+                .shopId(v.getShopId())
+                .brand(v.getBrand())
+                .model(v.getModel())
+                .year(v.getYear())
+                .licensePlate(v.getLicensePlate())
+                .passengerCapacity(v.getPassengerCapacity())
+                .commune(v.getCommune())
+                .driverId(v.getDriverId())
+                .driverName(driverName)
+                .imageUrl(v.getImageUrl())
+                .active(v.getActive())
+                .createdAt(v.getCreatedAt())
+                .build();
     }
 
     // ── Passenger bookings ───────────────────────────────────────────────────
