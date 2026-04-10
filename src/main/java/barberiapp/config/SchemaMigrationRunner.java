@@ -43,6 +43,7 @@ public class SchemaMigrationRunner implements ApplicationRunner {
         addSourceColumnToShopOrders();
         createGymClassesTable();
         createGymClassEnrollmentsTable();
+        migrateBarberSpecialtiesToJsonb();
     }
 
     /**
@@ -322,6 +323,24 @@ public class SchemaMigrationRunner implements ApplicationRunner {
             log.info("SchemaMigration: gym_class_enrollments verificada");
         } catch (Exception e) {
             log.debug("SchemaMigration: createGymClassEnrollmentsTable — {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Convierte barbers.specialties de json → jsonb.
+     * PostgreSQL no tiene operador de igualdad para json, por lo que
+     * SELECT DISTINCT falla cuando la columna aparece en el SELECT.
+     * jsonb sí soporta igualdad (y además permite índices GIN).
+     */
+    private void migrateBarberSpecialtiesToJsonb() {
+        try {
+            jdbc.execute(
+                "ALTER TABLE barbers ALTER COLUMN specialties TYPE jsonb USING specialties::jsonb"
+            );
+            log.info("SchemaMigration: barbers.specialties migrado a jsonb");
+        } catch (Exception e) {
+            // Ya es jsonb o no existe la columna — ambos casos son correctos
+            log.debug("SchemaMigration: migrateBarberSpecialtiesToJsonb — {}", e.getMessage());
         }
     }
 

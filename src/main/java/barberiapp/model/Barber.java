@@ -33,7 +33,7 @@ public class Barber {
     private Double rating;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "JSON")
+    @Column(columnDefinition = "JSONB")
     private String specialties;
 
     private Boolean active = true;
