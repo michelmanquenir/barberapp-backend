@@ -179,6 +179,33 @@ public class EmailService {
         send(to, "Tu acceso a " + shopName + " en WeServ", "#059669", body);
     }
 
+    // ─── Empleado/Barbero: bienvenida con contraseña provisional ─────────────
+
+    @Async("emailExecutor")
+    public void sendBarberWelcome(String to, String barberName, String shopName, String tempPassword) {
+        String appUrl = "https://weserv-mu.vercel.app";
+        String body = "<p style='font-size:16px;color:#111827;'>Hola, <strong>" + escHtml(barberName) + "</strong> ✂️</p>" +
+                      "<p style='color:#374151;margin-top:8px;'>El dueño de <strong>" + escHtml(shopName) + "</strong> " +
+                      "te ha creado una cuenta en <strong>WeServ</strong> como profesional. " +
+                      "Ya puedes acceder con las siguientes credenciales:</p>" +
+                      "<table style='width:100%;border-collapse:collapse;margin-top:20px;border-radius:8px;overflow:hidden;'>" +
+                      row("Usuario (email)", to) +
+                      row("Contraseña provisional", tempPassword) +
+                      "</table>" +
+                      "<div style='background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:14px 18px;margin-top:20px;'>" +
+                      "<p style='margin:0;font-size:13px;color:#92400e;'>" +
+                      "⚠️ <strong>Importante:</strong> Deberás cambiar esta contraseña la primera vez que inicies sesión." +
+                      "</p></div>" +
+                      "<p style='color:#374151;margin-top:16px;font-size:14px;'>Desde la app podrás ver tus citas del día, gestionar tu agenda y acceder a tu panel de profesional.</p>" +
+                      "<div style='text-align:center;margin-top:28px;'>" +
+                      "<a href='" + appUrl + "/login' style='display:inline-block;background:#111827;color:#fff;font-size:14px;font-weight:600;" +
+                      "padding:12px 28px;border-radius:8px;text-decoration:none;'>Ingresar a WeServ</a>" +
+                      "</div>" +
+                      "<p style='color:#9ca3af;font-size:12px;margin-top:24px;text-align:center;'>" +
+                      "Si no esperabas este correo, puedes ignorarlo con seguridad.</p>";
+        send(to, "Tu cuenta de profesional en " + shopName, "#111827", body);
+    }
+
     // ─── Recuperación de contraseña ───────────────────────────────────────────
 
     @Async("emailExecutor")

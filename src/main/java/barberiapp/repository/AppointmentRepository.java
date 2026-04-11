@@ -48,6 +48,21 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     /** Todas las citas de un conjunto de barberos */
     List<Appointment> findByBarberIdInOrderByDateDescTimeDesc(List<Long> barberIds);
 
+    /**
+     * Citas de UN barbero con eager fetch (para el dashboard de empleado).
+     * Limita a fechas recientes/futuras para no sobrecargar.
+     */
+    @Query("SELECT DISTINCT a FROM Appointment a " +
+           "LEFT JOIN FETCH a.user " +
+           "LEFT JOIN FETCH a.barber b " +
+           "LEFT JOIN FETCH a.service " +
+           "WHERE b.id = :barberId " +
+           "AND a.date >= :since " +
+           "ORDER BY a.date ASC, a.time ASC")
+    List<Appointment> findByBarberIdEagerSince(
+            @Param("barberId") Long barberId,
+            @Param("since") LocalDate since);
+
     /** Retorna los IDs de barberos que ya tienen cita (no cancelada) en una fecha y hora dadas (exacto) */
     @Query("SELECT a.barber.id FROM Appointment a " +
            "WHERE a.barber.id IN :barberIds " +

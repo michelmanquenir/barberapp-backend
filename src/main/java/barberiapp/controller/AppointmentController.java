@@ -110,6 +110,22 @@ public class AppointmentController {
         }
     }
 
+    /**
+     * GET /api/appointments/me/barber — citas asignadas al profesional autenticado
+     * (desde hace 7 días hacia el futuro). Para el dashboard de empleado.
+     */
+    @GetMapping("/me/barber")
+    @Transactional(readOnly = true)
+    public ResponseEntity<?> getMyBarberAppointments() {
+        try {
+            String userId = getCurrentUserId();
+            List<Appointment> appointments = appointmentService.getBarberAppointments(userId);
+            return ResponseEntity.ok(appointments);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     /** PUT /api/appointments/{id}/confirm — dueño/barbero confirma una cita pendiente */
     @PutMapping("/{id}/confirm")
     @Transactional

@@ -308,6 +308,19 @@ public class AppointmentService {
     }
 
     /**
+     * Retorna las citas asignadas al barbero autenticado, desde hoy hacia adelante.
+     * Usado por el dashboard de empleado (rol CLIENT con perfil de barbero).
+     */
+    @Transactional(readOnly = true)
+    public List<Appointment> getBarberAppointments(String userId) {
+        Barber barber = barberRepository.findByUserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("No tienes perfil de profesional vinculado"));
+        // Traer citas desde hace 1 semana (para mostrar recientes también)
+        LocalDate since = LocalDate.now().minusDays(7);
+        return appointmentRepository.findByBarberIdEagerSince(barber.getId(), since);
+    }
+
+    /**
      * Confirma una cita pendiente (dueño o barbero del negocio).
      * Cambia estado: pending → confirmed
      */

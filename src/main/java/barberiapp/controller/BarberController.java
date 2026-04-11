@@ -1,5 +1,7 @@
 package barberiapp.controller;
 
+import barberiapp.dto.BarberShopResponse;
+import barberiapp.dto.CreateBarberAccountRequest;
 import barberiapp.dto.CreateBarberRequest;
 import barberiapp.model.Barber;
 import barberiapp.service.BarberService;
@@ -38,6 +40,18 @@ public class BarberController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    /** GET /api/barbers/me/shops — negocios donde trabaja el barbero autenticado */
+    @GetMapping("/me/shops")
+    public ResponseEntity<?> getMyShops() {
+        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
+        try {
+            List<BarberShopResponse> shops = barberService.getMyShops(userId);
+            return ResponseEntity.ok(shops);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     /** GET /api/barbers/search?q= — buscar barberos registrados por nombre */
     @GetMapping("/search")
     public List<Barber> searchBarbers(@RequestParam(defaultValue = "") String q) {
@@ -60,5 +74,48 @@ public class BarberController {
         String userId = SecurityContextHolder.getContext().getAuthentication().getName();
         Barber barber = barberService.createBarberProfile(userId, req.getName(), req.getBio(), req.getImageUrl());
         return ResponseEntity.ok(barber);
+    }
+
+    // ─── Admin: gestión de cuentas de empleados ───────────────────────────────
+
+    /**
+     * POST /api/admin/shops/{shopId}/barbers/{barberId}/account
+     * Crea una cuenta de app para un profesional y la vincula al perfil de barbero.
+     * Solo el dueño del negocio puede invocar este endpoint.
+     */
+    @PostMapping("/admin/shops/{shopId}/barbers/{barberId}/account")
+    public ResponseEntity<?> createBarberAccount(
+            @PathVariable String shopId,
+            @PathVariable Long barberId,
+            @RequestBody CreateBarberAccountRequest req) {
+        String requesterId = SecurityContextHolder.getContext().getAuthentication().getName();
+        try {
+            if (req.getEmail() == null || req.getEmail().isBlank()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "El email es obligatorio"));
+            }
+            Barber barber = barberService.createAccountForBarber(shopId, barberId, requesterId, req.getEmail());
+            return ResponseEntity.ok(barber);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * DELETE /api/admin/shops/{shopId}/barbers/{barberId}/account
+     * Desvincula la cuenta de app del perfil de barbero.
+     * La cuenta de usuario NO se elimina — solo se rompe el vínculo.
+     * Solo el dueño del negocio puede invocar este endpoint.
+     */
+    @DeleteMapping("/admin/shops/{shopId}/barbers/{barberId}/account")
+    public ResponseEntity<?> unlinkBarberAccount(
+            @PathVariable String shopId,
+            @PathVariable Long barberId) {
+        String requesterId = SecurityContextHolder.getContext().getAuthentication().getName();
+        try {
+            Barber barber = barberService.unlinkAccountFromBarber(shopId, barberId, requesterId);
+            return ResponseEntity.ok(barber);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 }
