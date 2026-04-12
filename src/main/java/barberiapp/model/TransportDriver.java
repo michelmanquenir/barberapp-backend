@@ -42,6 +42,14 @@ public class TransportDriver {
     @Column(nullable = false)
     private Boolean active = true;
 
+    /** Email del conductor (opcional). Si se proporciona al crear, se genera una cuenta de app. */
+    @Column(length = 200)
+    private String email;
+
+    /** userId vinculado de la app (null = sin cuenta). */
+    @Column(name = "user_id", length = 36)
+    private String userId;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

@@ -45,6 +45,7 @@ public class SchemaMigrationRunner implements ApplicationRunner {
         createGymClassEnrollmentsTable();
         migrateBarberSpecialtiesToJsonb();
         addPaymentColumnsToPassengerBookings();
+        addAccountColumnsToTransportDrivers();
     }
 
     /**
@@ -353,6 +354,20 @@ public class SchemaMigrationRunner implements ApplicationRunner {
             log.info("SchemaMigration: passenger_bookings payment columns verificadas");
         } catch (Exception e) {
             log.debug("SchemaMigration: addPaymentColumnsToPassengerBookings — {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Agrega columnas email y user_id a transport_drivers para soportar
+     * la creación automática de cuentas de app al registrar conductores.
+     */
+    private void addAccountColumnsToTransportDrivers() {
+        try {
+            jdbc.execute("ALTER TABLE transport_drivers ADD COLUMN IF NOT EXISTS email VARCHAR(200)");
+            jdbc.execute("ALTER TABLE transport_drivers ADD COLUMN IF NOT EXISTS user_id VARCHAR(36)");
+            log.info("SchemaMigration: transport_drivers.email/user_id verificadas");
+        } catch (Exception e) {
+            log.debug("SchemaMigration: addAccountColumnsToTransportDrivers — {}", e.getMessage());
         }
     }
 

@@ -10,4 +10,6 @@ public class TransportDriverRequest {
     private String licenseImageUrl;
     private String notes;
     private Boolean active;
+    /** Email del conductor (opcional). Al crear, si se proporciona, se genera una cuenta de app. */
+    private String email;
 }

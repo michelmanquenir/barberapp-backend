@@ -20,5 +20,8 @@ public class TransportDriverResponse {
     private String licenseImageUrl;
     private String notes;
     private Boolean active;
+    private String email;
+    /** true si el conductor tiene cuenta de app vinculada */
+    private Boolean hasAccount;
     private LocalDateTime createdAt;
 }

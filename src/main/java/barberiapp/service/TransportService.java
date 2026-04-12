@@ -8,11 +8,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
+
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -27,6 +31,21 @@ public class TransportService {
     private final PassengerBookingRepository bookingRepository;
     private final BarberShopRepository barberShopRepository;
     private final ProfileRepository profileRepository;
+    private final AppUserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
+
+    private static final String TEMP_PASSWORD_CHARS =
+            "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#$!";
+    private static final SecureRandom RANDOM = new SecureRandom();
+
+    private String generateTempPassword() {
+        StringBuilder sb = new StringBuilder(10);
+        for (int i = 0; i < 10; i++) {
+            sb.append(TEMP_PASSWORD_CHARS.charAt(RANDOM.nextInt(TEMP_PASSWORD_CHARS.length())));
+        }
+        return sb.toString();
+    }
 
     // ── Ownership helper ─────────────────────────────────────────────────────
 
@@ -116,7 +135,7 @@ public class TransportService {
 
     @Transactional
     public TransportDriverResponse createDriver(String shopId, TransportDriverRequest req, String userId) {
-        verifyOwnership(shopId, userId);
+        BarberShop shop = verifyOwnership(shopId, userId);
         TransportDriver driver = TransportDriver.builder()
                 .shopId(shopId)
                 .name(req.getName())
@@ -124,8 +143,44 @@ public class TransportService {
                 .licenseNumber(req.getLicenseNumber())
                 .licenseImageUrl(req.getLicenseImageUrl())
                 .notes(req.getNotes())
+                .email(req.getEmail() != null ? req.getEmail().trim().toLowerCase() : null)
                 .active(req.getActive() != null ? req.getActive() : true)
                 .build();
+
+        // ── Crear cuenta de app si se proporcionó un email ─────────────────────
+        if (req.getEmail() != null && !req.getEmail().isBlank()) {
+            String normalizedEmail = req.getEmail().trim().toLowerCase();
+            if (userRepository.findByEmail(normalizedEmail).isPresent()) {
+                throw new IllegalArgumentException("Ya existe una cuenta con el email " + normalizedEmail +
+                        ". Crea el conductor sin email o usa uno diferente.");
+            }
+
+            String tempPassword = generateTempPassword();
+            String newUserId = UUID.randomUUID().toString();
+
+            AppUser newUser = AppUser.builder()
+                    .id(newUserId)
+                    .email(normalizedEmail)
+                    .passwordHash(passwordEncoder.encode(tempPassword))
+                    .role(UserRole.CLIENT)
+                    .status(UserStatus.ACTIVE)
+                    .mustChangePassword(true)
+                    .build();
+            userRepository.save(newUser);
+
+            Profile profile = new Profile();
+            profile.setId(newUserId);
+            profile.setAppUser(newUser);
+            profile.setFullName(req.getName().trim());
+            profileRepository.save(profile);
+
+            driver.setUserId(newUserId);
+
+            // Enviar credenciales por email
+            emailService.sendDriverWelcome(normalizedEmail, req.getName().trim(), shop.getName(), tempPassword);
+            log.info("Cuenta creada para conductor '{}' en shopId={}", req.getName(), shopId);
+        }
+
         return toDriverResponse(driverRepository.save(driver));
     }
 
@@ -534,6 +589,8 @@ public class TransportService {
                 .licenseImageUrl(d.getLicenseImageUrl())
                 .notes(d.getNotes())
                 .active(d.getActive())
+                .email(d.getEmail())
+                .hasAccount(d.getUserId() != null)
                 .createdAt(d.getCreatedAt())
                 .build();
     }
