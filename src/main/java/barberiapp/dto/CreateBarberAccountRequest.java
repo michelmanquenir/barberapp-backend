@@ -10,4 +10,6 @@ import lombok.NoArgsConstructor;
 public class CreateBarberAccountRequest {
     /** Email que se usará para la cuenta de la app del profesional */
     private String email;
+    /** RUT chileno (ej: 12345678-9). Opcional pero recomendado. */
+    private String rut;
 }

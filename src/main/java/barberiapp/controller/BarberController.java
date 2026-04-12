@@ -93,7 +93,7 @@ public class BarberController {
             if (req.getEmail() == null || req.getEmail().isBlank()) {
                 return ResponseEntity.badRequest().body(Map.of("error", "El email es obligatorio"));
             }
-            Barber barber = barberService.createAccountForBarber(shopId, barberId, requesterId, req.getEmail());
+            Barber barber = barberService.createAccountForBarber(shopId, barberId, requesterId, req.getEmail(), req.getRut());
             return ResponseEntity.ok(barber);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

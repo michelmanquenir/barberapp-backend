@@ -91,7 +91,7 @@ public class BarberService {
      */
     @Transactional
     public Barber createAccountForBarber(String shopId, Long barberId,
-                                         String requesterId, String email) {
+                                         String requesterId, String email, String rut) {
         // 1. Verificar que el negocio existe y el requester es el dueño
         BarberShop shop = shopRepository.findById(shopId)
                 .orElseThrow(() -> new IllegalArgumentException("Negocio no encontrado"));
@@ -118,6 +118,15 @@ public class BarberService {
             throw new IllegalArgumentException("Ya existe una cuenta registrada con el email " + normalizedEmail);
         }
 
+        // Normalizar y validar RUT si se proporcionó
+        String normalizedRut = null;
+        if (rut != null && !rut.isBlank()) {
+            normalizedRut = rut.trim().toUpperCase();
+            if (userRepository.existsByRut(normalizedRut)) {
+                throw new IllegalArgumentException("Ya existe una cuenta registrada con el RUT " + normalizedRut);
+            }
+        }
+
         // 5. Crear AppUser con contraseña temporal
         String tempPassword = generateTempPassword();
         String userId = UUID.randomUUID().toString();
@@ -125,6 +134,7 @@ public class BarberService {
         AppUser newUser = AppUser.builder()
                 .id(userId)
                 .email(normalizedEmail)
+                .rut(normalizedRut)
                 .passwordHash(passwordEncoder.encode(tempPassword))
                 .role(UserRole.CLIENT)          // Rol CLIENT — el sistema detecta que es empleado via barber.userId
                 .status(UserStatus.ACTIVE)      // Activo de inmediato — el dueño lo está registrando

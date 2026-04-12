@@ -155,12 +155,22 @@ public class TransportService {
                         ". Crea el conductor sin email o usa uno diferente.");
             }
 
+            // Validar RUT si se proporcionó
+            String normalizedRut = null;
+            if (req.getRut() != null && !req.getRut().isBlank()) {
+                normalizedRut = req.getRut().trim().toUpperCase();
+                if (userRepository.existsByRut(normalizedRut)) {
+                    throw new IllegalArgumentException("Ya existe una cuenta con el RUT " + normalizedRut);
+                }
+            }
+
             String tempPassword = generateTempPassword();
             String newUserId = UUID.randomUUID().toString();
 
             AppUser newUser = AppUser.builder()
                     .id(newUserId)
                     .email(normalizedEmail)
+                    .rut(normalizedRut)
                     .passwordHash(passwordEncoder.encode(tempPassword))
                     .role(UserRole.CLIENT)
                     .status(UserStatus.ACTIVE)
