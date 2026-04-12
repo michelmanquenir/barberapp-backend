@@ -57,11 +57,11 @@ public class OrderService {
                     .orElseThrow(() -> new IllegalArgumentException(
                             "Producto no encontrado: ID " + item.getProductId()));
             if (!Boolean.TRUE.equals(p.getActive())) {
-                throw new IllegalArgumentException("El producto \"" + p.getName() + "\" no está disponible");
+                throw new IllegalArgumentException("El producto \"" + p.getResolvedName() + "\" no está disponible");
             }
             if (p.getStock() < item.getQuantity()) {
                 throw new IllegalArgumentException(
-                        "Stock insuficiente para \"" + p.getName() + "\". " +
+                        "Stock insuficiente para \"" + p.getResolvedName() + "\". " +
                         "Disponible: " + p.getStock() + ", solicitado: " + item.getQuantity());
             }
             return p;
@@ -134,7 +134,7 @@ public class OrderService {
             OrderItem orderItem = OrderItem.builder()
                     .orderId(savedOrder.getId())
                     .productId(product.getId())
-                    .productName(product.getName())
+                    .productName(product.getResolvedName())
                     .unitPrice(product.getSalePrice())
                     .quantity(itemReq.getQuantity())
                     .subtotal(product.getSalePrice() * itemReq.getQuantity())
