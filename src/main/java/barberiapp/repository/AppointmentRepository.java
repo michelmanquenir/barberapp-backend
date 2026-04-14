@@ -9,10 +9,32 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
+
+    /**
+     * Carga una cita por ID con JOIN FETCH sobre user, barber y service
+     * para evitar LazyInitializationException al serializar fuera de sesión
+     * (open-in-view=false).
+     */
+    @Query("SELECT a FROM Appointment a " +
+           "LEFT JOIN FETCH a.user " +
+           "LEFT JOIN FETCH a.barber " +
+           "LEFT JOIN FETCH a.service " +
+           "WHERE a.id = :id")
+    Optional<Appointment> findByIdEager(@Param("id") Long id);
     List<Appointment> findByUserIdOrderByDateDescTimeDesc(String userId);
+
+    /** Citas del cliente con eager fetch (para serializar sin sesión) */
+    @Query("SELECT DISTINCT a FROM Appointment a " +
+           "LEFT JOIN FETCH a.user " +
+           "LEFT JOIN FETCH a.barber " +
+           "LEFT JOIN FETCH a.service " +
+           "WHERE a.user.id = :userId " +
+           "ORDER BY a.date DESC, a.time DESC")
+    List<Appointment> findByUserIdEager(@Param("userId") String userId);
 
     List<Appointment> findByUserIdAndStatusOrderByDateDescTimeDesc(String userId, String status);
 

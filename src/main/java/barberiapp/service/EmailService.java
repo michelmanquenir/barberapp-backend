@@ -281,12 +281,20 @@ public class EmailService {
 
     @Async("emailExecutor")
     public void sendAppointmentCompleted(String to, String name, AppointmentEmailData data) {
+        String appUrl = "https://weserv-mu.vercel.app";
+        String reviewLink = appUrl + "/appointments";
         String body = "<p style='font-size:16px;color:#111827;'>Hola, <strong>" + escHtml(name) + "</strong> 🎊</p>" +
                       "<p style='color:#374151;margin-top:8px;'>¡Tu cita en <strong>" + escHtml(data.shopName()) + "</strong> " +
                       "fue completada! Esperamos que hayas tenido una excelente experiencia.</p>" +
                       appointmentTable(data) +
-                      "<p style='color:#6b7280;font-size:13px;margin-top:12px;'>¿Qué tal estuvo? Puedes dejar tu opinión en la app.</p>";
-        send(to, "¡Cita completada!", "#16a34a", body);
+                      "<p style='color:#374151;margin-top:16px;font-size:14px;'>¿Qué tal estuvo? Tu opinión nos ayuda a mejorar. " +
+                      "Puedes calificar al profesional y al negocio desde la app.</p>" +
+                      "<div style='text-align:center;margin-top:24px;'>" +
+                      "<a href='" + reviewLink + "' style='display:inline-block;background:#16a34a;color:#fff;font-size:14px;font-weight:600;" +
+                      "padding:12px 28px;border-radius:8px;text-decoration:none;'>⭐ Dejar mi opinión</a>" +
+                      "</div>" +
+                      "<p style='color:#9ca3af;font-size:12px;margin-top:16px;text-align:center;'>Podrás calificar al profesional y al negocio desde la sección \"Completadas\" en tus citas.</p>";
+        send(to, "¡Cita completada! Cuéntanos cómo te fue", "#16a34a", body);
     }
 
     // ─── Citas: propietario ───────────────────────────────────────────────────

@@ -49,8 +49,9 @@ public class AppointmentService {
     private final SubscriptionService subscriptionService;
     private final EmailService emailService;
 
+    @Transactional(readOnly = true)
     public List<Appointment> getUserAppointments(String userId) {
-        return appointmentRepository.findByUserIdOrderByDateDescTimeDesc(userId);
+        return appointmentRepository.findByUserIdEager(userId);
     }
 
     @Transactional
@@ -99,11 +100,11 @@ public class AppointmentService {
                                 "Producto no encontrado: ID " + item.getProductId()));
 
                 if (!Boolean.TRUE.equals(product.getActive())) {
-                    throw new IllegalArgumentException("El producto \"" + product.getName() + "\" no está disponible");
+                    throw new IllegalArgumentException("El producto \"" + product.getResolvedName() + "\" no está disponible");
                 }
                 if (product.getStock() < item.getQuantity()) {
                     throw new IllegalArgumentException(
-                            "Stock insuficiente para \"" + product.getName() + "\". " +
+                            "Stock insuficiente para \"" + product.getResolvedName() + "\". " +
                             "Disponible: " + product.getStock() + ", solicitado: " + item.getQuantity());
                 }
 
@@ -168,7 +169,7 @@ public class AppointmentService {
                 AppointmentProduct ap = new AppointmentProduct();
                 ap.setAppointmentId(saved.getId());
                 ap.setProductId(product.getId());
-                ap.setProductName(product.getName());
+                ap.setProductName(product.getResolvedName());
                 ap.setUnitPrice(product.getSalePrice());
                 ap.setQuantity(item.getQuantity());
                 ap.setSubtotal(product.getSalePrice() * item.getQuantity());
@@ -326,7 +327,7 @@ public class AppointmentService {
      */
     @Transactional
     public Appointment confirmAppointment(Long appointmentId, String requesterId) {
-        Appointment appointment = appointmentRepository.findById(appointmentId)
+        Appointment appointment = appointmentRepository.findByIdEager(appointmentId)
                 .orElseThrow(() -> new RuntimeException("Cita no encontrada"));
 
         if (!"pending".equals(appointment.getStatus())) {
@@ -363,7 +364,7 @@ public class AppointmentService {
      */
     @Transactional
     public Appointment noShowAppointment(Long appointmentId, String requesterId) {
-        Appointment appointment = appointmentRepository.findById(appointmentId)
+        Appointment appointment = appointmentRepository.findByIdEager(appointmentId)
                 .orElseThrow(() -> new RuntimeException("Cita no encontrada"));
 
         if (!"confirmed".equals(appointment.getStatus())) {
@@ -396,7 +397,7 @@ public class AppointmentService {
     /** Marca una cita como completada (dueño o barbero del negocio) */
     @Transactional
     public Appointment completeAppointment(Long appointmentId, String requesterId) {
-        Appointment appointment = appointmentRepository.findById(appointmentId)
+        Appointment appointment = appointmentRepository.findByIdEager(appointmentId)
                 .orElseThrow(() -> new RuntimeException("Cita no encontrada"));
 
         if (!"confirmed".equals(appointment.getStatus())) {
@@ -427,7 +428,7 @@ public class AppointmentService {
 
     @Transactional
     public Appointment cancelAppointment(Long appointmentId, String userId) {
-        Appointment appointment = appointmentRepository.findById(appointmentId)
+        Appointment appointment = appointmentRepository.findByIdEager(appointmentId)
                 .orElseThrow(() -> new RuntimeException("Appointment not found"));
 
         if (!appointment.getUser().getId().equals(userId)) {
@@ -467,7 +468,7 @@ public class AppointmentService {
      */
     @Transactional
     public Appointment cancelByBarber(Long appointmentId, String requesterId) {
-        Appointment appointment = appointmentRepository.findById(appointmentId)
+        Appointment appointment = appointmentRepository.findByIdEager(appointmentId)
                 .orElseThrow(() -> new RuntimeException("Cita no encontrada"));
 
         if ("completed".equals(appointment.getStatus()) || "cancelled".equals(appointment.getStatus())) {
