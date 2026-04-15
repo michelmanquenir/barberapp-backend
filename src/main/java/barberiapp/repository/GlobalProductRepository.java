@@ -26,8 +26,11 @@ public interface GlobalProductRepository extends JpaRepository<GlobalProduct, Lo
         """)
     List<GlobalProduct> search(@Param("q") String q, Pageable pageable);
 
-    /** Busca por barcode exacto */
+    /** Busca por barcode exacto (solo activos — para vincular desde negocios) */
     Optional<GlobalProduct> findByBarcodeAndActiveTrue(String barcode);
+
+    /** Busca por barcode exacto (todos, incluyendo inactivos — para validar unicidad) */
+    Optional<GlobalProduct> findByBarcode(String barcode);
 
     /** Lista todos los activos (paginada) */
     List<GlobalProduct> findByActiveTrueOrderByNameAsc(Pageable pageable);

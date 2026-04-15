@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Endpoints para el catálogo global de productos.
@@ -57,7 +58,7 @@ public class GlobalProductController {
         // Barcode debe ser único si se provee
         if (req.getBarcode() != null && !req.getBarcode().isBlank()) {
             String bc = req.getBarcode().trim();
-            if (repo.findByBarcodeAndActiveTrue(bc).isPresent())
+            if (repo.findByBarcode(bc).isPresent())
                 return ResponseEntity.badRequest().body(
                     Map.of("error", "Ya existe un producto en el catálogo con ese código de barras"));
         }
@@ -75,7 +76,7 @@ public class GlobalProductController {
         return ResponseEntity.ok(GlobalProductDto.from(repo.save(gp)));
     }
 
-    /** Actualiza nombre, imagen, descripción, etc. de una entrada del catálogo. */
+    /** Actualiza nombre, imagen, descripción, barcode, etc. de una entrada del catálogo. */
     @PutMapping("/api/admin/global-products/{id}")
     public ResponseEntity<?> update(@PathVariable Long id, @RequestBody GlobalProductRequest req) {
         GlobalProduct gp = repo.findById(id)
@@ -88,6 +89,20 @@ public class GlobalProductController {
         if (req.getImageUrl()    != null) gp.setImageUrl(req.getImageUrl().trim().isEmpty() ? null : req.getImageUrl().trim());
         if (req.getSku()         != null) gp.setSku(req.getSku().trim().isEmpty() ? null : req.getSku().trim());
         if (req.getActive()      != null) gp.setActive(req.getActive());
+
+        // Barcode: permitir actualización con validación de unicidad
+        if (req.getBarcode() != null) {
+            String newBarcode = req.getBarcode().trim().isEmpty() ? null : req.getBarcode().trim();
+            // Solo validar si cambió el barcode
+            if (newBarcode != null && !newBarcode.equals(gp.getBarcode())) {
+                Optional<GlobalProduct> existing = repo.findByBarcode(newBarcode);
+                if (existing.isPresent() && !existing.get().getId().equals(id)) {
+                    return ResponseEntity.badRequest().body(
+                        Map.of("error", "Ya existe un producto en el catálogo con ese código de barras"));
+                }
+            }
+            gp.setBarcode(newBarcode);
+        }
 
         return ResponseEntity.ok(GlobalProductDto.from(repo.save(gp)));
     }
