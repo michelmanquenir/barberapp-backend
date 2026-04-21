@@ -30,6 +30,13 @@ public class ShopProductResponse {
     // Catálogo global
     private Long globalProductId;
 
+    // Ubicación en bodega (opcional)
+    private Long shelfSlotId;
+    private String shelfSlotCode;
+    private String shelfSlotLabel;
+    private Long shelfId;
+    private String shelfName;
+
     // ── Calculados ──────────────────────────────────────────────────────────────
 
     /** Ganancia por unidad = salePrice - purchasePrice */
@@ -69,6 +76,17 @@ public class ShopProductResponse {
 
         // ID del catálogo global (si está vinculado)
         r.setGlobalProductId(p.getGlobalProduct() != null ? p.getGlobalProduct().getId() : null);
+
+        // Ubicación en bodega
+        if (p.getShelfSlot() != null) {
+            r.setShelfSlotId(p.getShelfSlot().getId());
+            r.setShelfSlotCode(p.getShelfSlot().getCode());
+            r.setShelfSlotLabel(p.getShelfSlot().getLabel());
+            if (p.getShelfSlot().getShelf() != null) {
+                r.setShelfId(p.getShelfSlot().getShelf().getId());
+                r.setShelfName(p.getShelfSlot().getShelf().getName());
+            }
+        }
 
         return r;
     }

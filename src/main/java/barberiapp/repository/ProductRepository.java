@@ -13,9 +13,11 @@ import java.util.Optional;
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
-    /** Todos los productos de una barbería (admin: incluye inactivos).
-     *  LEFT JOIN FETCH globalProduct para evitar N+1 al construir los DTOs. */
-    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.globalProduct WHERE p.shopId = :shopId ORDER BY p.createdAt DESC")
+    /**
+     * Todos los productos de una barbería (admin: incluye inactivos).
+     * LEFT JOIN FETCH globalProduct + shelfSlot + shelf para evitar N+1 al construir los DTOs.
+     */
+    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.globalProduct LEFT JOIN FETCH p.shelfSlot ss LEFT JOIN FETCH ss.shelf WHERE p.shopId = :shopId ORDER BY p.createdAt DESC")
     List<Product> findByShopIdOrderByCategoryAscNameAsc(@Param("shopId") String shopId);
 
     /** Solo productos activos de una barbería (vista pública sin filtro de aprobación — uso interno) */
@@ -42,6 +44,14 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     Optional<Product> findByShopIdAndGlobalBarcodeAndActive(@Param("shopId") String shopId, @Param("barcode") String barcode);
 
     // ── Validación de unicidad ────────────────────────────────────────────────
+
+    /** Productos activos de un negocio con slot asignado (para contar ocupación por estantería) */
+    @Query("SELECT p FROM Product p JOIN FETCH p.shelfSlot ss JOIN FETCH ss.shelf sh WHERE p.shopId = :shopId AND p.active = true")
+    List<Product> findByShopIdWithAssignedSlot(@Param("shopId") String shopId);
+
+    /** Productos activos de un negocio asignados a una estantería específica */
+    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.globalProduct LEFT JOIN FETCH p.shelfSlot ss JOIN FETCH ss.shelf sh WHERE p.shopId = :shopId AND sh.id = :shelfId AND p.active = true")
+    List<Product> findByShopIdAndShelfId(@Param("shopId") String shopId, @Param("shelfId") Long shelfId);
 
     /** Verifica si existe otro producto con el mismo nombre (case-insensitive) en el negocio */
     @Query("SELECT COUNT(p) > 0 FROM Product p WHERE p.shopId = :shopId AND LOWER(p.name) = LOWER(:name) AND p.id <> :excludeId")

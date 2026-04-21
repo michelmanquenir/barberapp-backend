@@ -1,9 +1,8 @@
 package barberiapp.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
@@ -62,6 +61,17 @@ public class Product {
     /** SKU / código interno del negocio */
     @Column(length = 50)
     private String sku;
+
+    /**
+     * Posición en bodega/estantería (opcional).
+     * Si es null, el producto no tiene ubicación asignada.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "shelf_slot_id")
+    @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private ShelfSlot shelfSlot;
 
     @Column(columnDefinition = "boolean default true")
     private Boolean active = true;

@@ -34,4 +34,10 @@ public class ShopProductRequest {
      * se heredan del catálogo y los valores locales se ignoran.
      */
     private Long globalProductId;
+
+    /**
+     * ID del slot de estantería donde se almacena este producto.
+     * null = sin ubicación asignada; -1 = quitar ubicación existente.
+     */
+    private Long shelfSlotId;
 }

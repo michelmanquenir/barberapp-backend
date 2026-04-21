@@ -6,9 +6,11 @@ import barberiapp.model.ApprovalStatus;
 import barberiapp.model.BarberShop;
 import barberiapp.model.GlobalProduct;
 import barberiapp.model.Product;
+import barberiapp.model.ShelfSlot;
 import barberiapp.repository.BarberShopRepository;
 import barberiapp.repository.GlobalProductRepository;
 import barberiapp.repository.ProductRepository;
+import barberiapp.repository.ShelfSlotRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +24,7 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final BarberShopRepository shopRepository;
     private final GlobalProductRepository globalProductRepository;
+    private final ShelfSlotRepository shelfSlotRepository;
 
     // ── Consultas ───────────────────────────────────────────────────────────────
 
@@ -134,6 +137,26 @@ public class ProductService {
         return ShopProductResponse.from(productRepository.save(p));
     }
 
+    /** Asigna o quita la posición de bodega de un producto. */
+    @Transactional
+    public ShopProductResponse assignSlot(Long productId, Long slotId) {
+        Product p = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
+
+        if (slotId == null || slotId == -1L) {
+            p.setShelfSlot(null);
+        } else {
+            ShelfSlot slot = shelfSlotRepository.findByIdWithShelf(slotId)
+                    .orElseThrow(() -> new IllegalArgumentException("Posición de estantería no encontrada"));
+            if (!slot.getShelf().getShopId().equals(p.getShopId())) {
+                throw new IllegalArgumentException("La posición no pertenece a este negocio");
+            }
+            p.setShelfSlot(slot);
+        }
+
+        return ShopProductResponse.from(productRepository.save(p));
+    }
+
     // ── helper ──────────────────────────────────────────────────────────────────
 
     private void applyRequest(Product p, ShopProductRequest req) {
@@ -165,5 +188,16 @@ public class ProductService {
         if (req.getSalePrice()     != null) p.setSalePrice(req.getSalePrice());
         if (req.getStock()         != null) p.setStock(Math.max(0, req.getStock()));
         if (req.getActive()        != null) p.setActive(req.getActive());
+
+        // Slot de bodega (opcional): -1 = quitar, null = no cambiar, otro valor = asignar
+        if (req.getShelfSlotId() != null) {
+            if (req.getShelfSlotId() == -1L) {
+                p.setShelfSlot(null);
+            } else {
+                ShelfSlot slot = shelfSlotRepository.findByIdWithShelf(req.getShelfSlotId())
+                        .orElseThrow(() -> new IllegalArgumentException("Posición de estantería no encontrada"));
+                p.setShelfSlot(slot);
+            }
+        }
     }
 }

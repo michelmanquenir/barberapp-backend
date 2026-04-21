@@ -93,6 +93,25 @@ public class ProductController {
     }
 
     /**
+     * PATCH /api/admin/products/{productId}/slot
+     * Asigna o quita la posición de bodega de un producto.
+     * Body: { "slotId": 5 }  →  asigna el slot 5
+     * Body: { "slotId": -1 } →  quita la ubicación (sin bodega)
+     */
+    @PatchMapping("/api/admin/products/{productId}/slot")
+    public ResponseEntity<?> assignSlot(@PathVariable Long productId,
+                                         @RequestBody Map<String, Object> body) {
+        try {
+            Long slotId = body.get("slotId") != null
+                    ? Long.valueOf(body.get("slotId").toString())
+                    : null;
+            return ResponseEntity.ok(productService.assignSlot(productId, slotId));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
      * GET /api/admin/shops/{shopId}/products/barcode/{barcode}
      * Busca un producto activo por código de barras.
      * Busca primero en barcode local, luego en barcode del catálogo global vinculado.
