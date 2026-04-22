@@ -30,17 +30,17 @@ public class ShelfService {
         List<Shelf> shelves = shelfRepository.findByShopIdOrderByNameAsc(shopId);
         if (shelves.isEmpty()) return Collections.emptyList();
 
-        // Obtener conteo de slots ocupados por estantería
+        // Contar slots distintos ocupados por estantería (un slot puede tener varios productos)
         List<Product> withSlot = productRepository.findByShopIdWithAssignedSlot(shopId);
-        Map<Long, Long> countByShelfId = withSlot.stream()
+        Map<Long, Set<Long>> slotsByShelf = withSlot.stream()
                 .collect(Collectors.groupingBy(
                         p -> p.getShelfSlot().getShelf().getId(),
-                        Collectors.counting()
+                        Collectors.mapping(p -> p.getShelfSlot().getId(), Collectors.toSet())
                 ));
 
         return shelves.stream().map(s -> {
             ShelfResponse r = ShelfResponse.from(s);
-            r.setOccupiedSlots(countByShelfId.getOrDefault(s.getId(), 0L).intValue());
+            r.setOccupiedSlots(slotsByShelf.getOrDefault(s.getId(), Collections.emptySet()).size());
             return r;
         }).toList();
     }
@@ -54,20 +54,22 @@ public class ShelfService {
         List<ShelfSlot> slots = shelfSlotRepository.findByShelfIdOrderByCodeAsc(shelfId);
         List<Product> products = productRepository.findByShopIdAndShelfId(shopId, shelfId);
 
-        // Mapa slotId → producto
-        Map<Long, Product> bySlot = products.stream()
-                .collect(Collectors.toMap(p -> p.getShelfSlot().getId(), p -> p, (a, b) -> a));
+        // Mapa slotId → lista de productos (un slot puede tener varios)
+        Map<Long, List<Product>> bySlot = products.stream()
+                .collect(Collectors.groupingBy(p -> p.getShelfSlot().getId()));
 
         List<ShelfSlotResponse> slotResponses = slots.stream().map(slot -> {
             ShelfSlotResponse sr = ShelfSlotResponse.from(slot);
-            Product prod = bySlot.get(slot.getId());
-            if (prod != null) {
-                sr.setProductId(prod.getId());
-                sr.setProductName(prod.getResolvedName());
-                sr.setProductImageUrl(prod.getResolvedImageUrl());
-                sr.setProductStock(prod.getStock());
-                sr.setProductSalePrice(prod.getSalePrice());
-            }
+            List<Product> slotProducts = bySlot.getOrDefault(slot.getId(), Collections.emptyList());
+            sr.setProducts(slotProducts.stream().map(prod -> {
+                ShelfSlotResponse.SlotProduct sp = new ShelfSlotResponse.SlotProduct();
+                sp.setProductId(prod.getId());
+                sp.setProductName(prod.getResolvedName());
+                sp.setProductImageUrl(prod.getResolvedImageUrl());
+                sp.setProductStock(prod.getStock());
+                sp.setProductSalePrice(prod.getSalePrice());
+                return sp;
+            }).toList());
             return sr;
         }).toList();
 
@@ -129,9 +131,11 @@ public class ShelfService {
 
         shelfRepository.save(shelf);
         ShelfResponse r = ShelfResponse.from(shelf);
-        // Contar ocupados
+        // Contar slots distintos ocupados
         long occupied = productRepository.findByShopIdWithAssignedSlot(shopId).stream()
                 .filter(p -> p.getShelfSlot().getShelf().getId().equals(shelfId))
+                .map(p -> p.getShelfSlot().getId())
+                .distinct()
                 .count();
         r.setOccupiedSlots((int) occupied);
         return r;

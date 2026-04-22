@@ -137,7 +137,8 @@ public class ProductService {
         return ShopProductResponse.from(productRepository.save(p));
     }
 
-    /** Asigna o quita la posición de bodega de un producto. */
+    /** Asigna o quita la posición de bodega de un producto.
+     *  Si otro producto ya estaba en ese slot, lo desasigna automáticamente. */
     @Transactional
     public ShopProductResponse assignSlot(Long productId, Long slotId) {
         Product p = productRepository.findById(productId)
@@ -151,6 +152,7 @@ public class ProductService {
             if (!slot.getShelf().getShopId().equals(p.getShopId())) {
                 throw new IllegalArgumentException("La posición no pertenece a este negocio");
             }
+            // Un producto solo puede estar en un slot, pero un slot puede tener varios productos.
             p.setShelfSlot(slot);
         }
 
@@ -196,6 +198,7 @@ public class ProductService {
             } else {
                 ShelfSlot slot = shelfSlotRepository.findByIdWithShelf(req.getShelfSlotId())
                         .orElseThrow(() -> new IllegalArgumentException("Posición de estantería no encontrada"));
+                // Un slot admite varios productos; solo asignar este.
                 p.setShelfSlot(slot);
             }
         }

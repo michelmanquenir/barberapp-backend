@@ -45,6 +45,10 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     // ── Validación de unicidad ────────────────────────────────────────────────
 
+    /** Todos los productos que están asignados a un slot específico */
+    @Query("SELECT p FROM Product p WHERE p.shelfSlot.id = :slotId")
+    List<Product> findByShelfSlotId(@Param("slotId") Long slotId);
+
     /** Productos activos de un negocio con slot asignado (para contar ocupación por estantería) */
     @Query("SELECT p FROM Product p JOIN FETCH p.shelfSlot ss JOIN FETCH ss.shelf sh WHERE p.shopId = :shopId AND p.active = true")
     List<Product> findByShopIdWithAssignedSlot(@Param("shopId") String shopId);
