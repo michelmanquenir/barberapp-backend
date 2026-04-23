@@ -27,7 +27,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findByShopIdAndActiveTrueOrderByCategoryAscNameAsc(@Param("shopId") String shopId);
 
     /** Vista pública: solo activos Y aprobados */
-    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.globalProduct WHERE p.shopId = :shopId AND p.active = true AND (p.approvalStatus = :approved OR p.approvalStatus IS NULL) ORDER BY p.createdAt DESC")
+    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.globalProduct LEFT JOIN FETCH p.shelfSlot ss LEFT JOIN FETCH ss.shelf WHERE p.shopId = :shopId AND p.active = true AND (p.approvalStatus = :approved OR p.approvalStatus IS NULL) ORDER BY p.createdAt DESC")
     List<Product> findPublicApproved(@Param("shopId") String shopId, @Param("approved") ApprovalStatus approved);
 
     /** Super admin: todos los productos de todos los negocios */
