@@ -131,6 +131,7 @@ public class SuperAdminController {
     @GetMapping("/products")
     public List<Map<String, Object>> listProducts() {
         return productRepository.findAllOrderByCreatedAtDesc().stream()
+                .filter(p -> p.getGlobalProduct() == null)   // los del catálogo global no necesitan revisión
                 .map(this::toProductSummary)
                 .collect(Collectors.toList());
     }
@@ -139,6 +140,7 @@ public class SuperAdminController {
     public List<Map<String, Object>> listProductsByStatus(@PathVariable String status) {
         ApprovalStatus approvalStatus = ApprovalStatus.valueOf(status.toUpperCase());
         return productRepository.findByApprovalStatus(approvalStatus).stream()
+                .filter(p -> p.getGlobalProduct() == null)   // los del catálogo global no necesitan revisión
                 .map(this::toProductSummary)
                 .collect(Collectors.toList());
     }
@@ -259,22 +261,29 @@ public class SuperAdminController {
         ApprovalStatus status = product.getApprovalStatus() != null ? product.getApprovalStatus() : ApprovalStatus.ACTIVE;
         String shopName = shopRepository.findById(product.getShopId())
                 .map(BarberShop::getName).orElse(product.getShopId());
+        // Usar nombre/descripción/categoría resueltos (hereda del catálogo global si aplica)
+        String name        = product.getResolvedName()        != null ? product.getResolvedName()        : "";
+        String description = product.getResolvedDescription() != null ? product.getResolvedDescription() : "";
+        String category    = product.getResolvedCategory()    != null ? product.getResolvedCategory()    : "";
+        String imageUrl    = product.getResolvedImageUrl()    != null ? product.getResolvedImageUrl()    : "";
+        String barcode     = product.getResolvedBarcode()     != null ? product.getResolvedBarcode()     : "";
+        String sku         = product.getResolvedSku()         != null ? product.getResolvedSku()         : "";
         return Map.ofEntries(
                 Map.entry("id",             (Object) product.getId()),
-                Map.entry("name",           product.getName()        != null ? product.getName()        : ""),
-                Map.entry("description",    product.getDescription() != null ? product.getDescription() : ""),
-                Map.entry("category",       product.getCategory()    != null ? product.getCategory()    : ""),
-                Map.entry("imageUrl",       product.getImageUrl()    != null ? product.getImageUrl()    : ""),
-                Map.entry("barcode",        product.getBarcode()       != null ? product.getBarcode()       : ""),
-                Map.entry("sku",            product.getSku()           != null ? product.getSku()           : ""),
-                Map.entry("salePrice",      (Object)(product.getSalePrice()    != null ? product.getSalePrice()    : 0)),
+                Map.entry("name",           name),
+                Map.entry("description",    description),
+                Map.entry("category",       category),
+                Map.entry("imageUrl",       imageUrl),
+                Map.entry("barcode",        barcode),
+                Map.entry("sku",            sku),
+                Map.entry("salePrice",      (Object)(product.getSalePrice()     != null ? product.getSalePrice()     : 0)),
                 Map.entry("purchasePrice",  (Object)(product.getPurchasePrice() != null ? product.getPurchasePrice() : 0)),
-                Map.entry("stock",          (Object)(product.getStock()        != null ? product.getStock()        : 0)),
-                Map.entry("active",         (Object)(product.getActive()       != null ? product.getActive()       : true)),
+                Map.entry("stock",          (Object)(product.getStock()         != null ? product.getStock()         : 0)),
+                Map.entry("active",         (Object)(product.getActive()        != null ? product.getActive()        : true)),
                 Map.entry("approvalStatus", status.name()),
                 Map.entry("shopName",       shopName != null ? shopName : ""),
-                Map.entry("shopId",         product.getShopId()        != null ? product.getShopId()        : ""),
-                Map.entry("createdAt",      product.getCreatedAt()     != null ? product.getCreatedAt().toString() : "")
+                Map.entry("shopId",         product.getShopId() != null ? product.getShopId() : ""),
+                Map.entry("createdAt",      product.getCreatedAt() != null ? product.getCreatedAt().toString() : "")
         );
     }
 
