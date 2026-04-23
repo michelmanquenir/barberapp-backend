@@ -3,8 +3,10 @@ package barberiapp.repository;
 import barberiapp.model.ApprovalStatus;
 import barberiapp.model.Product;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -68,4 +70,14 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     /** Verifica si existe otro producto con el mismo SKU en el negocio */
     @Query("SELECT COUNT(p) > 0 FROM Product p WHERE p.shopId = :shopId AND p.sku = :sku AND p.id <> :excludeId")
     boolean existsByShopIdAndSkuExcluding(@Param("shopId") String shopId, @Param("sku") String sku, @Param("excludeId") Long excludeId);
+
+    /** Cuenta cuántos productos de negocios están vinculados a un GlobalProduct */
+    @Query("SELECT COUNT(p) FROM Product p WHERE p.globalProduct.id = :globalProductId")
+    long countByGlobalProductId(@Param("globalProductId") Long globalProductId);
+
+    /** Desvincula todos los productos de negocios de un GlobalProduct (antes de eliminarlo) */
+    @Modifying
+    @Transactional
+    @Query("UPDATE Product p SET p.globalProduct = null WHERE p.globalProduct.id = :globalProductId")
+    void unlinkGlobalProduct(@Param("globalProductId") Long globalProductId);
 }

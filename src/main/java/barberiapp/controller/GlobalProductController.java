@@ -4,6 +4,7 @@ import barberiapp.dto.GlobalProductDto;
 import barberiapp.dto.GlobalProductRequest;
 import barberiapp.model.GlobalProduct;
 import barberiapp.repository.GlobalProductRepository;
+import barberiapp.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +27,7 @@ import java.util.Optional;
 public class GlobalProductController {
 
     private final GlobalProductRepository repo;
+    private final ProductRepository productRepo;
 
     /** Busca productos en el catálogo global (por nombre o barcode). */
     @GetMapping("/api/admin/global-products")
@@ -105,5 +107,23 @@ public class GlobalProductController {
         }
 
         return ResponseEntity.ok(GlobalProductDto.from(repo.save(gp)));
+    }
+
+    /** Super admin: cuántos productos de negocios están vinculados a este producto global. */
+    @GetMapping("/api/super-admin/global-products/{id}/usage")
+    public ResponseEntity<?> getUsage(@PathVariable Long id) {
+        if (!repo.existsById(id)) return ResponseEntity.notFound().build();
+        long count = productRepo.countByGlobalProductId(id);
+        return ResponseEntity.ok(Map.of("linkedProducts", count));
+    }
+
+    /** Super admin: elimina un producto global, desvinculándolo de los negocios que lo usen. */
+    @DeleteMapping("/api/super-admin/global-products/{id}")
+    public ResponseEntity<?> delete(@PathVariable Long id) {
+        GlobalProduct gp = repo.findById(id).orElse(null);
+        if (gp == null) return ResponseEntity.notFound().build();
+        productRepo.unlinkGlobalProduct(id);
+        repo.deleteById(id);
+        return ResponseEntity.noContent().build();
     }
 }
