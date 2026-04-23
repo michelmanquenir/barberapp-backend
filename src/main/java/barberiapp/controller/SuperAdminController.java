@@ -165,6 +165,21 @@ public class SuperAdminController {
         return ResponseEntity.ok(Map.of("approvalStatus", "REJECTED", "productId", productId.toString()));
     }
 
+    /** Aprueba en masa todos los productos PENDING de un negocio específico. */
+    @Transactional
+    @PutMapping("/products/approve-pending/{shopId}")
+    public ResponseEntity<Map<String, Object>> approvePendingByShop(@PathVariable String shopId) {
+        List<Product> pending = productRepository.findByApprovalStatus(ApprovalStatus.PENDING)
+                .stream()
+                .filter(p -> shopId.equals(p.getShopId()))
+                .toList();
+        pending.forEach(p -> {
+            p.setApprovalStatus(ApprovalStatus.ACTIVE);
+            productRepository.save(p);
+        });
+        return ResponseEntity.ok(Map.of("approved", pending.size(), "shopId", shopId));
+    }
+
     private void notifyProductOwner(Product product, boolean approved) {
         try {
             shopRepository.findById(product.getShopId()).ifPresent(shop -> {

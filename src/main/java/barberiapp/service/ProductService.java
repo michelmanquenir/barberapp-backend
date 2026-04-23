@@ -85,11 +85,9 @@ public class ProductService {
             }
         }
 
-        // Productos del catálogo global ya fueron revisados por el super admin:
-        // se aprueban automáticamente sin necesidad de revisión adicional.
-        if (p.getGlobalProduct() != null) {
-            p.setApprovalStatus(ApprovalStatus.ACTIVE);
-        }
+        // El negocio ya fue aprobado (validado arriba), por lo que todos sus productos
+        // se aprueban automáticamente al crearse, sin revisión adicional.
+        p.setApprovalStatus(ApprovalStatus.ACTIVE);
 
         return ShopProductResponse.from(productRepository.save(p));
     }
