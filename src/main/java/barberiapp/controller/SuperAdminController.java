@@ -8,6 +8,7 @@ import barberiapp.repository.BusinessCategoryRepository;
 import barberiapp.repository.ProductRepository;
 import barberiapp.repository.ProfileRepository;
 import barberiapp.service.EmailService;
+import barberiapp.service.WalletService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,6 +32,7 @@ public class SuperAdminController {
     private final ProductRepository productRepository;
     private final BusinessCategoryRepository categoryRepository;
     private final EmailService emailService;
+    private final WalletService walletService;
 
     // ─── Usuarios ────────────────────────────────────────────────────────────────
 
@@ -255,6 +257,41 @@ public class SuperAdminController {
                 "ownerName",      ownerName,
                 "createdAt",      shop.getCreatedAt() != null ? shop.getCreatedAt().toString() : ""
         );
+    }
+
+    // ─── Wallet (super admin) ────────────────────────────────────────────────────
+
+    /** Devuelve el saldo actual de un usuario. */
+    @GetMapping("/wallet/balance/{userId}")
+    public ResponseEntity<?> getWalletBalance(@PathVariable String userId) {
+        if (profileRepository.findById(userId).isEmpty())
+            return ResponseEntity.notFound().build();
+        int balance = walletService.getUserBalance(userId);
+        return ResponseEntity.ok(Map.of("balance", balance, "userId", userId));
+    }
+
+    /** Recarga el saldo de un usuario (solo super admin). */
+    @Transactional
+    @PostMapping("/wallet/add-funds/{userId}")
+    public ResponseEntity<?> addFundsToUser(
+            @PathVariable String userId,
+            @RequestBody Map<String, Object> body) {
+        if (profileRepository.findById(userId).isEmpty())
+            return ResponseEntity.notFound().build();
+        int amount = ((Number) body.get("amount")).intValue();
+        if (amount <= 0)
+            return ResponseEntity.badRequest().body(Map.of("error", "El monto debe ser mayor a 0"));
+        String description = body.containsKey("description")
+                ? (String) body.get("description")
+                : "Recarga manual por super admin";
+        var tx = walletService.addFunds(userId, amount, description);
+        int newBalance = walletService.getUserBalance(userId);
+        return ResponseEntity.ok(Map.of(
+                "transactionId", tx.getId(),
+                "amount",        amount,
+                "newBalance",    newBalance,
+                "description",   description
+        ));
     }
 
     private Map<String, Object> toProductSummary(Product product) {
