@@ -23,6 +23,8 @@ public class ShopStatsController {
     private final AppointmentRepository appointmentRepository;
     private final AppointmentProductRepository appointmentProductRepository;
     private final UserSubscriptionRepository subscriptionRepository;
+    private final ShopOrderRepository orderRepository;
+    private final OrderItemRepository orderItemRepository;
 
     @GetMapping
     @Transactional(readOnly = true)
@@ -41,7 +43,7 @@ public class ShopStatsController {
         LocalDate from = LocalDate.now().minusDays(days);
         LocalDate to = LocalDate.now();
 
-        // Barber IDs for legacy appointments query
+        // ── Appointments ──────────────────────────────────────────────────────
         List<Long> barberIds = memberRepository.findByShopIdAndActiveTrue(shopId)
                 .stream()
                 .map(m -> m.getBarber().getId())
@@ -59,18 +61,52 @@ public class ShopStatsController {
                 .filter(a -> "completed".equals(a.getStatus()))
                 .collect(Collectors.toList());
 
-        // ── Revenue ────────────────────────────────────────────────────────────
-        long totalRevenue = completed.stream()
+        // ── Orders (pedidos / bazar) ───────────────────────────────────────────
+        List<ShopOrder> allOrders = orderRepository.findByShopIdOrderByCreatedAtDesc(shopId)
+                .stream()
+                .filter(o -> {
+                    LocalDate d = o.getCreatedAt() != null ? o.getCreatedAt().toLocalDate() : null;
+                    return d != null && !d.isBefore(from) && !d.isAfter(to);
+                })
+                .collect(Collectors.toList());
+
+        List<ShopOrder> deliveredOrders = allOrders.stream()
+                .filter(o -> "delivered".equals(o.getStatus()))
+                .collect(Collectors.toList());
+
+        List<Long> deliveredOrderIds = deliveredOrders.stream()
+                .map(ShopOrder::getId)
+                .collect(Collectors.toList());
+
+        List<OrderItem> allOrderItems = deliveredOrderIds.isEmpty()
+                ? Collections.emptyList()
+                : orderItemRepository.findByOrderIdIn(deliveredOrderIds);
+
+        // ── Revenue (appointments + orders) ───────────────────────────────────
+        long apptTotalRevenue = completed.stream()
                 .mapToLong(a -> a.getTotalPrice() != null ? a.getTotalPrice() : 0).sum();
-        long cashRevenue = completed.stream()
+        long apptCashRevenue = completed.stream()
                 .filter(a -> "cash".equals(a.getPaymentMethod()))
                 .mapToLong(a -> a.getTotalPrice() != null ? a.getTotalPrice() : 0).sum();
-        long transferRevenue = completed.stream()
+        long apptTransferRevenue = completed.stream()
                 .filter(a -> "transfer".equals(a.getPaymentMethod()))
                 .mapToLong(a -> a.getTotalPrice() != null ? a.getTotalPrice() : 0).sum();
         long subscriptionRevenue = completed.stream()
                 .filter(a -> a.getSubscriptionId() != null)
                 .mapToLong(a -> a.getTotalPrice() != null ? a.getTotalPrice() : 0).sum();
+
+        long orderTotalRevenue = deliveredOrders.stream()
+                .mapToLong(o -> o.getTotalPrice() != null ? o.getTotalPrice() : 0).sum();
+        long orderCashRevenue = deliveredOrders.stream()
+                .filter(o -> "cash".equals(o.getPaymentMethod()))
+                .mapToLong(o -> o.getTotalPrice() != null ? o.getTotalPrice() : 0).sum();
+        long orderTransferRevenue = deliveredOrders.stream()
+                .filter(o -> "transfer".equals(o.getPaymentMethod()))
+                .mapToLong(o -> o.getTotalPrice() != null ? o.getTotalPrice() : 0).sum();
+
+        long totalRevenue = apptTotalRevenue + orderTotalRevenue;
+        long cashRevenue = apptCashRevenue + orderCashRevenue;
+        long transferRevenue = apptTransferRevenue + orderTransferRevenue;
 
         // ── Appointment counts ────────────────────────────────────────────────
         Map<String, Long> byStatus = allAppointments.stream()
@@ -82,7 +118,13 @@ public class ShopStatsController {
                 .filter(a -> "home".equals(a.getLocation())).count();
         long atShop = allAppointments.size() - atHome;
 
-        // ── Weekly revenue trend ──────────────────────────────────────────────
+        // ── Order counts ──────────────────────────────────────────────────────
+        Map<String, Long> ordersByStatus = allOrders.stream()
+                .collect(Collectors.groupingBy(
+                        o -> o.getStatus() != null ? o.getStatus() : "unknown",
+                        Collectors.counting()));
+
+        // ── Weekly revenue trend (appointments + orders) ──────────────────────
         Map<String, long[]> weeklyMap = new TreeMap<>();
         for (Appointment a : completed) {
             String weekKey = a.getDate()
@@ -91,6 +133,16 @@ public class ShopStatsController {
             weeklyMap.computeIfAbsent(weekKey, k -> new long[]{0, 0});
             weeklyMap.get(weekKey)[0] += a.getTotalPrice() != null ? a.getTotalPrice() : 0;
             weeklyMap.get(weekKey)[1]++;
+        }
+        for (ShopOrder o : deliveredOrders) {
+            if (o.getCreatedAt() != null) {
+                String weekKey = o.getCreatedAt().toLocalDate()
+                        .with(WeekFields.ISO.dayOfWeek(), 1)
+                        .toString();
+                weeklyMap.computeIfAbsent(weekKey, k -> new long[]{0, 0});
+                weeklyMap.get(weekKey)[0] += o.getTotalPrice() != null ? o.getTotalPrice() : 0;
+                weeklyMap.get(weekKey)[1]++;
+            }
         }
         List<Map<String, Object>> weeklyRevenue = weeklyMap.entrySet().stream()
                 .map(e -> {
@@ -124,7 +176,7 @@ public class ShopStatsController {
                 })
                 .collect(Collectors.toList());
 
-        // ── Top products ──────────────────────────────────────────────────────
+        // ── Top products (appointment products + order items) ─────────────────
         Map<String, long[]> productMap = new LinkedHashMap<>();
         for (Appointment a : completed) {
             List<AppointmentProduct> products =
@@ -135,6 +187,12 @@ public class ShopStatsController {
                 productMap.get(name)[0] += p.getQuantity() != null ? p.getQuantity() : 1;
                 productMap.get(name)[1] += p.getSubtotal() != null ? p.getSubtotal() : 0;
             }
+        }
+        for (OrderItem item : allOrderItems) {
+            String name = item.getProductName() != null ? item.getProductName() : "Desconocido";
+            productMap.computeIfAbsent(name, k -> new long[]{0, 0});
+            productMap.get(name)[0] += item.getQuantity() != null ? item.getQuantity() : 1;
+            productMap.get(name)[1] += item.getSubtotal() != null ? item.getSubtotal() : 0;
         }
         List<Map<String, Object>> topProducts = productMap.entrySet().stream()
                 .sorted((a, b) -> Long.compare(b.getValue()[0], a.getValue()[0]))
@@ -148,7 +206,7 @@ public class ShopStatsController {
                 })
                 .collect(Collectors.toList());
 
-        // ── Top clients ───────────────────────────────────────────────────────
+        // ── Top clients (appointments + orders) ───────────────────────────────
         Map<String, long[]> clientMap = new LinkedHashMap<>();
         for (Appointment a : completed) {
             String name;
@@ -163,8 +221,15 @@ public class ShopStatsController {
             clientMap.get(name)[0]++;
             clientMap.get(name)[1] += a.getTotalPrice() != null ? a.getTotalPrice() : 0;
         }
+        for (ShopOrder o : deliveredOrders) {
+            String name = (o.getClientName() != null && !o.getClientName().isBlank())
+                    ? o.getClientName() : "Anónimo";
+            clientMap.computeIfAbsent(name, k -> new long[]{0, 0});
+            clientMap.get(name)[0]++;
+            clientMap.get(name)[1] += o.getTotalPrice() != null ? o.getTotalPrice() : 0;
+        }
         List<Map<String, Object>> topClients = clientMap.entrySet().stream()
-                .sorted((a, b) -> Long.compare(b.getValue()[0], a.getValue()[0]))
+                .sorted((a, b) -> Long.compare(b.getValue()[1], a.getValue()[1]))
                 .limit(10)
                 .map(e -> {
                     Map<String, Object> s = new LinkedHashMap<>();
@@ -176,7 +241,6 @@ public class ShopStatsController {
                 .collect(Collectors.toList());
 
         // ── Barber performance ────────────────────────────────────────────────
-        // Use Object[] array: [name, count, revenue, rating]
         Map<Long, Object[]> barberPerfMap = new LinkedHashMap<>();
         for (Appointment a : allAppointments) {
             if (a.getBarber() == null) continue;
@@ -232,6 +296,15 @@ public class ShopStatsController {
                 "confirmed", byStatus.getOrDefault("confirmed", 0L),
                 "atShop", atShop,
                 "atHome", atHome
+        ));
+        response.put("orders", Map.of(
+                "total", (long) allOrders.size(),
+                "delivered", ordersByStatus.getOrDefault("delivered", 0L),
+                "cancelled", ordersByStatus.getOrDefault("cancelled", 0L),
+                "pending", ordersByStatus.getOrDefault("pending", 0L),
+                "confirmed", ordersByStatus.getOrDefault("confirmed", 0L),
+                "ready", ordersByStatus.getOrDefault("ready", 0L),
+                "revenue", orderTotalRevenue
         ));
         response.put("weeklyRevenue", weeklyRevenue);
         response.put("topServices", topServices);
