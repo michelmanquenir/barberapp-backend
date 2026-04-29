@@ -52,4 +52,24 @@ public interface GlobalProductRepository extends JpaRepository<GlobalProduct, Lo
                OR gp.barcode = :q
             """)
     Page<GlobalProduct> searchAll(@Param("q") String q, Pageable pageable);
+
+    /** Super admin: igual que searchAll pero filtrado por active. */
+    @Query(value = """
+            SELECT gp FROM GlobalProduct gp
+            WHERE gp.active = :active
+              AND (:q = ''
+                   OR LOWER(gp.name) LIKE LOWER(CONCAT('%', :q, '%'))
+                   OR gp.barcode = :q)
+            """,
+            countQuery = """
+            SELECT COUNT(gp) FROM GlobalProduct gp
+            WHERE gp.active = :active
+              AND (:q = ''
+                   OR LOWER(gp.name) LIKE LOWER(CONCAT('%', :q, '%'))
+                   OR gp.barcode = :q)
+            """)
+    Page<GlobalProduct> searchAllByActive(
+            @Param("q") String q,
+            @Param("active") boolean active,
+            Pageable pageable);
 }
