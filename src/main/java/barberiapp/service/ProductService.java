@@ -9,6 +9,7 @@ import barberiapp.model.Product;
 import barberiapp.model.ShelfSlot;
 import barberiapp.repository.BarberShopRepository;
 import barberiapp.repository.GlobalProductRepository;
+import barberiapp.repository.OrderItemRepository;
 import barberiapp.repository.ProductRepository;
 import barberiapp.repository.ShelfSlotRepository;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ public class ProductService {
     private final BarberShopRepository shopRepository;
     private final GlobalProductRepository globalProductRepository;
     private final ShelfSlotRepository shelfSlotRepository;
+    private final OrderItemRepository orderItemRepository;
 
     // ── Consultas ───────────────────────────────────────────────────────────────
 
@@ -120,6 +122,31 @@ public class ProductService {
                 .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
         p.setActive(false);
         productRepository.save(p);
+    }
+
+    /**
+     * Elimina permanentemente un producto del negocio (hard delete).
+     * Solo permitido para productos locales (sin vínculo al catálogo global).
+     * Bloqueado si el producto tiene ventas asociadas en order_items.
+     */
+    @Transactional
+    public void hardDeleteProduct(Long productId) {
+        Product p = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+
+        if (p.getGlobalProduct() != null) {
+            throw new IllegalArgumentException(
+                "Este producto está vinculado al catálogo global y no puede eliminarse directamente. " +
+                "Desactívalo si ya no lo necesitas.");
+        }
+
+        if (orderItemRepository.existsByProductId(productId)) {
+            throw new IllegalArgumentException(
+                "No se puede eliminar este producto porque tiene ventas registradas. " +
+                "Si ya no deseas mostrarlo, desactívalo en su lugar.");
+        }
+
+        productRepository.delete(p);
     }
 
     /**

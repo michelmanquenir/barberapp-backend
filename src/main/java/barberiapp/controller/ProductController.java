@@ -93,6 +93,23 @@ public class ProductController {
     }
 
     /**
+     * DELETE /api/admin/products/{productId}/permanent
+     * Elimina permanentemente un producto local del negocio (hard delete).
+     * Bloqueado si el producto pertenece al catálogo global o tiene ventas asociadas.
+     */
+    @DeleteMapping("/api/admin/products/{productId}/permanent")
+    public ResponseEntity<?> hardDeleteProduct(@PathVariable Long productId) {
+        try {
+            productService.hardDeleteProduct(productId);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
      * PATCH /api/admin/products/{productId}/slot
      * Asigna o quita la posición de bodega de un producto.
      * Body: { "slotId": 5 }  →  asigna el slot 5
