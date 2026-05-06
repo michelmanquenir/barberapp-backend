@@ -25,6 +25,7 @@ public class OrderResponse {
     private Long assignedBarberId;
     private String assignedBarberName;
     private LocalDateTime scheduledAt;
+    private String transferProofUrl;
     private LocalDateTime createdAt;
     private List<OrderItemResponse> items;
 }

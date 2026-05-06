@@ -68,6 +68,11 @@ public class BarberShopService {
                 .homeServiceEnabled(Boolean.TRUE.equals(req.getHomeServiceEnabled()))
                 .pricePerKm(req.getPricePerKm() != null ? req.getPricePerKm() : 0)
                 .categoryId(req.getCategoryId())
+                .transferBankName(req.getTransferBankName())
+                .transferAccountHolder(req.getTransferAccountHolder())
+                .transferAccountNumber(req.getTransferAccountNumber())
+                .transferAlias(req.getTransferAlias())
+                .transferInstructions(req.getTransferInstructions())
                 .build();
 
         shopRepository.save(shop);
@@ -187,6 +192,11 @@ public class BarberShopService {
         shop.setHomeServiceEnabled(Boolean.TRUE.equals(req.getHomeServiceEnabled()));
         shop.setPricePerKm(req.getPricePerKm() != null ? req.getPricePerKm() : 0);
         shop.setCategoryId(req.getCategoryId());
+        shop.setTransferBankName(req.getTransferBankName());
+        shop.setTransferAccountHolder(req.getTransferAccountHolder());
+        shop.setTransferAccountNumber(req.getTransferAccountNumber());
+        shop.setTransferAlias(req.getTransferAlias());
+        shop.setTransferInstructions(req.getTransferInstructions());
 
         shopRepository.save(shop);
         List<Barber> barbers = getBarbersByShop(shop.getId());
@@ -229,7 +239,12 @@ public class BarberShopService {
                 shop.getHomeServiceEnabled(),
                 shop.getPricePerKm(),
                 shop.getApprovalStatus() != null ? shop.getApprovalStatus().name() : "ACTIVE",
-                shop.getCategoryId()
+                shop.getCategoryId(),
+                shop.getTransferBankName(),
+                shop.getTransferAccountHolder(),
+                shop.getTransferAccountNumber(),
+                shop.getTransferAlias(),
+                shop.getTransferInstructions()
         );
     }
 }

@@ -22,5 +22,7 @@ public class OrderRequest {
     private Long assignedBarberId;
     /** Fecha-hora ISO 8601 acordada para el delivery (ej. "2026-03-25T09:00:00") */
     private String scheduledAt;
+    /** URL del comprobante de transferencia subido a Supabase (solo si paymentMethod=transfer) */
+    private String transferProofUrl;
     private List<OrderItemRequest> items;
 }

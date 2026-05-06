@@ -110,6 +110,7 @@ public class OrderService {
                 .status("pos".equals(source) ? "delivered" : "pending") // ventas POS son inmediatas
                 .deliveryType(request.getDeliveryType() != null ? request.getDeliveryType() : "pickup")
                 .paymentMethod(request.getPaymentMethod() != null ? request.getPaymentMethod() : "cash")
+                .transferProofUrl(request.getTransferProofUrl())
                 .clientAddress(request.getClientAddress())
                 .totalPrice(totalPrice)
                 .deliveryFee(deliveryFee)
@@ -262,6 +263,7 @@ public class OrderService {
                 .status(order.getStatus())
                 .deliveryType(order.getDeliveryType())
                 .paymentMethod(order.getPaymentMethod())
+                .transferProofUrl(order.getTransferProofUrl())
                 .clientAddress(order.getClientAddress())
                 .totalPrice(order.getTotalPrice())
                 .deliveryFee(order.getDeliveryFee())

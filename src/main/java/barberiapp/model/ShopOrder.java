@@ -77,6 +77,10 @@ public class ShopOrder {
     @Column(name = "scheduled_at")
     private LocalDateTime scheduledAt;
 
+    /** URL del comprobante de transferencia adjunto por el cliente */
+    @Column(name = "transfer_proof_url", length = 500)
+    private String transferProofUrl;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 

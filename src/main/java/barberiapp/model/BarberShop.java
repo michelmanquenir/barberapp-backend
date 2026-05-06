@@ -61,6 +61,23 @@ public class BarberShop {
     @Column(name = "category_id", length = 36)
     private String categoryId;
 
+    // ── Datos bancarios para recibir transferencias ───────────────────────────
+    @Column(name = "transfer_bank_name", length = 100)
+    private String transferBankName;
+
+    @Column(name = "transfer_account_holder", length = 100)
+    private String transferAccountHolder;
+
+    @Column(name = "transfer_account_number", length = 100)
+    private String transferAccountNumber;
+
+    /** CBU, CVU, alias, CLABE, etc. según el país */
+    @Column(name = "transfer_alias", length = 100)
+    private String transferAlias;
+
+    @Column(name = "transfer_instructions", columnDefinition = "TEXT")
+    private String transferInstructions;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

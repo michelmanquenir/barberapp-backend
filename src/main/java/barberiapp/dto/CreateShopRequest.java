@@ -13,4 +13,9 @@ public class CreateShopRequest {
     private Boolean homeServiceEnabled;
     private Integer pricePerKm;
     private String categoryId;
+    private String transferBankName;
+    private String transferAccountHolder;
+    private String transferAccountNumber;
+    private String transferAlias;
+    private String transferInstructions;
 }
