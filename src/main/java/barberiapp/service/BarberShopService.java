@@ -68,11 +68,12 @@ public class BarberShopService {
                 .homeServiceEnabled(Boolean.TRUE.equals(req.getHomeServiceEnabled()))
                 .pricePerKm(req.getPricePerKm() != null ? req.getPricePerKm() : 0)
                 .categoryId(req.getCategoryId())
-                .transferBankName(req.getTransferBankName())
                 .transferAccountHolder(req.getTransferAccountHolder())
+                .transferRut(req.getTransferRut())
+                .transferEmail(req.getTransferEmail())
+                .transferAccountType(req.getTransferAccountType())
                 .transferAccountNumber(req.getTransferAccountNumber())
-                .transferAlias(req.getTransferAlias())
-                .transferInstructions(req.getTransferInstructions())
+                .transferBankName(req.getTransferBankName())
                 .build();
 
         shopRepository.save(shop);
@@ -192,11 +193,12 @@ public class BarberShopService {
         shop.setHomeServiceEnabled(Boolean.TRUE.equals(req.getHomeServiceEnabled()));
         shop.setPricePerKm(req.getPricePerKm() != null ? req.getPricePerKm() : 0);
         shop.setCategoryId(req.getCategoryId());
-        shop.setTransferBankName(req.getTransferBankName());
         shop.setTransferAccountHolder(req.getTransferAccountHolder());
+        shop.setTransferRut(req.getTransferRut());
+        shop.setTransferEmail(req.getTransferEmail());
+        shop.setTransferAccountType(req.getTransferAccountType());
         shop.setTransferAccountNumber(req.getTransferAccountNumber());
-        shop.setTransferAlias(req.getTransferAlias());
-        shop.setTransferInstructions(req.getTransferInstructions());
+        shop.setTransferBankName(req.getTransferBankName());
 
         shopRepository.save(shop);
         List<Barber> barbers = getBarbersByShop(shop.getId());
@@ -240,11 +242,12 @@ public class BarberShopService {
                 shop.getPricePerKm(),
                 shop.getApprovalStatus() != null ? shop.getApprovalStatus().name() : "ACTIVE",
                 shop.getCategoryId(),
-                shop.getTransferBankName(),
                 shop.getTransferAccountHolder(),
+                shop.getTransferRut(),
+                shop.getTransferEmail(),
+                shop.getTransferAccountType(),
                 shop.getTransferAccountNumber(),
-                shop.getTransferAlias(),
-                shop.getTransferInstructions()
+                shop.getTransferBankName()
         );
     }
 }

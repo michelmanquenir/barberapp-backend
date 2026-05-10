@@ -24,9 +24,10 @@ public class BarberShopResponse {
     private Integer pricePerKm;
     private String approvalStatus;
     private String categoryId;
-    private String transferBankName;
     private String transferAccountHolder;
+    private String transferRut;
+    private String transferEmail;
+    private String transferAccountType;
     private String transferAccountNumber;
-    private String transferAlias;
-    private String transferInstructions;
+    private String transferBankName;
 }
