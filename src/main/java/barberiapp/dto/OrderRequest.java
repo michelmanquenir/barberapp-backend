@@ -24,5 +24,9 @@ public class OrderRequest {
     private String scheduledAt;
     /** URL del comprobante de transferencia subido a Supabase (solo si paymentMethod=transfer) */
     private String transferProofUrl;
+    /** Datos del invitado (solo cuando source=guest) */
+    private String guestName;
+    private String guestEmail;
+    private String guestPhone;
     private List<OrderItemRequest> items;
 }

@@ -23,8 +23,20 @@ public class ShopOrder {
     @Column(name = "shop_id", length = 36, nullable = false)
     private String shopId;
 
-    @Column(name = "client_user_id", length = 36, nullable = false)
+    @Column(name = "client_user_id", length = 36)
     private String clientUserId;
+
+    /** Nombre del invitado (null si el cliente tiene cuenta) */
+    @Column(name = "guest_name", length = 150)
+    private String guestName;
+
+    /** Email del invitado (null si el cliente tiene cuenta) */
+    @Column(name = "guest_email", length = 150)
+    private String guestEmail;
+
+    /** Teléfono del invitado (null si el cliente tiene cuenta) */
+    @Column(name = "guest_phone", length = 30)
+    private String guestPhone;
 
     /** Snapshot del nombre del cliente al momento del pedido */
     @Column(name = "client_name", length = 100)

@@ -76,10 +76,16 @@ public class OrderService {
                 ? request.getDeliveryFee() : 0;
         int totalPrice = itemsTotal + deliveryFee;
 
-        // Snapshot del nombre del cliente
-        String clientName = profileRepository.findById(clientUserId)
-                .map(Profile::getFullName)
-                .orElse("Cliente");
+        // Snapshot del nombre del cliente (o datos del invitado)
+        String clientName;
+        if (clientUserId != null) {
+            clientName = profileRepository.findById(clientUserId)
+                    .map(Profile::getFullName)
+                    .orElse("Cliente");
+        } else {
+            clientName = (request.getGuestName() != null && !request.getGuestName().isBlank())
+                    ? request.getGuestName() : "Invitado";
+        }
 
         // Barbero asignado para delivery (snapshot del nombre)
         Long assignedBarberId = request.getAssignedBarberId();
@@ -105,6 +111,9 @@ public class OrderService {
         ShopOrder order = ShopOrder.builder()
                 .shopId(request.getShopId())
                 .clientUserId(clientUserId)
+                .guestName(request.getGuestName())
+                .guestEmail(request.getGuestEmail())
+                .guestPhone(request.getGuestPhone())
                 .clientName(clientName)
                 .source(source)
                 .status("pos".equals(source) ? "delivered" : "pending") // ventas POS son inmediatas
@@ -213,7 +222,7 @@ public class OrderService {
         ShopOrder order = shopOrderRepository.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Pedido no encontrado"));
 
-        if (!order.getClientUserId().equals(clientUserId)) {
+        if (order.getClientUserId() == null || !order.getClientUserId().equals(clientUserId)) {
             throw new IllegalArgumentException("Acceso denegado");
         }
         if (!"pending".equals(order.getStatus())) {
@@ -259,6 +268,9 @@ public class OrderService {
                 .shopName(shopName)
                 .clientUserId(order.getClientUserId())
                 .clientName(order.getClientName())
+                .guestName(order.getGuestName())
+                .guestEmail(order.getGuestEmail())
+                .guestPhone(order.getGuestPhone())
                 .source(order.getSource())
                 .status(order.getStatus())
                 .deliveryType(order.getDeliveryType())

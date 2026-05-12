@@ -26,6 +26,9 @@ public class OrderResponse {
     private String assignedBarberName;
     private LocalDateTime scheduledAt;
     private String transferProofUrl;
+    private String guestName;
+    private String guestEmail;
+    private String guestPhone;
     private LocalDateTime createdAt;
     private List<OrderItemResponse> items;
 }

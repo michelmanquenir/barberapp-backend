@@ -21,12 +21,17 @@ public class OrderController {
 
     // ── Cliente ───────────────────────────────────────────────────────────────
 
-    /** POST /api/orders — cliente crea un pedido */
+    /** POST /api/orders — cliente (registrado o invitado) crea un pedido */
     @PostMapping("/api/orders")
     @Transactional
     public ResponseEntity<?> createOrder(@RequestBody OrderRequest request) {
         try {
-            String clientUserId = getCurrentUserId();
+            // Spring devuelve "anonymousUser" cuando no hay JWT
+            String principal = SecurityContextHolder.getContext().getAuthentication().getName();
+            String clientUserId = "anonymousUser".equals(principal) ? null : principal;
+            if (clientUserId == null) {
+                request.setSource("guest");
+            }
             OrderResponse order = orderService.createOrder(clientUserId, request);
             return ResponseEntity.ok(order);
         } catch (IllegalArgumentException e) {
