@@ -30,4 +30,5 @@ public class BarberShopResponse {
     private String transferAccountType;
     private String transferAccountNumber;
     private String transferBankName;
+    private Boolean transferEnabled;
 }

@@ -81,6 +81,9 @@ public class BarberShop {
     @Column(name = "transfer_bank_name", length = 100)
     private String transferBankName;
 
+    @Column(name = "transfer_enabled")
+    private Boolean transferEnabled;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

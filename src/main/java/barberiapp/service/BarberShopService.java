@@ -74,6 +74,7 @@ public class BarberShopService {
                 .transferAccountType(req.getTransferAccountType())
                 .transferAccountNumber(req.getTransferAccountNumber())
                 .transferBankName(req.getTransferBankName())
+                .transferEnabled(Boolean.TRUE.equals(req.getTransferEnabled()))
                 .build();
 
         shopRepository.save(shop);
@@ -199,6 +200,7 @@ public class BarberShopService {
         shop.setTransferAccountType(req.getTransferAccountType());
         shop.setTransferAccountNumber(req.getTransferAccountNumber());
         shop.setTransferBankName(req.getTransferBankName());
+        shop.setTransferEnabled(Boolean.TRUE.equals(req.getTransferEnabled()));
 
         shopRepository.save(shop);
         List<Barber> barbers = getBarbersByShop(shop.getId());
@@ -247,7 +249,8 @@ public class BarberShopService {
                 shop.getTransferEmail(),
                 shop.getTransferAccountType(),
                 shop.getTransferAccountNumber(),
-                shop.getTransferBankName()
+                shop.getTransferBankName(),
+                Boolean.TRUE.equals(shop.getTransferEnabled())
         );
     }
 }
