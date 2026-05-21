@@ -51,6 +51,7 @@ public class EmailService {
     ) {}
 
     public record OrderEmailData(
+            String shopId,
             String shopName,
             String clientName,
             String deliveryType,
@@ -269,7 +270,7 @@ public class EmailService {
                       "ha realizado un nuevo pedido en tu negocio <strong>" + escHtml(data.shopName()) + "</strong>:</p>" +
                       orderTable(data) +
                       "<div style='text-align:center;margin-top:24px;'>" +
-                      "<a href='https://weserv-mu.vercel.app/admin/shops' " +
+                      "<a href='https://weserv-mu.vercel.app/admin/shops/" + escHtml(data.shopId()) + "/orders' " +
                       "style='display:inline-block;background:#0891b2;color:#fff;font-size:14px;font-weight:600;" +
                       "padding:12px 28px;border-radius:8px;text-decoration:none;'>Ver pedido en el panel</a>" +
                       "</div>";

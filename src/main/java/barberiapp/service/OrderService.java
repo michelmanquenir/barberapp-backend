@@ -172,6 +172,7 @@ public class OrderService {
                 String totalFormatted = "$" + String.format("%,d", totalPrice).replace(",", ".");
 
                 EmailService.OrderEmailData emailData = new EmailService.OrderEmailData(
+                        shop.getId(),
                         shop.getName(),
                         clientName,
                         savedOrder.getDeliveryType(),
