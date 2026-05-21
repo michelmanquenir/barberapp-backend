@@ -25,6 +25,7 @@ public class OrderService {
     private final BarberShopRepository barberShopRepository;
     private final ProfileRepository profileRepository;
     private final BarberRepository barberRepository;
+    private final EmailService emailService;
 
     // ── Estados terminales donde no se puede cambiar nada ────────────────────
     private static final Set<String> TERMINAL_STATUSES = Set.of("delivered", "cancelled");
@@ -150,6 +151,40 @@ public class OrderService {
                     .subtotal(product.getSalePrice() * itemReq.getQuantity())
                     .build();
             orderItemRepository.save(orderItem);
+        }
+
+        // Notificar al dueño del negocio (solo pedidos web, no ventas POS)
+        if (!"pos".equals(source)) {
+            try {
+                String ownerEmail = shop.getOwner().getEmail();
+                String ownerName  = profileRepository.findById(shop.getOwner().getId())
+                        .map(Profile::getFullName).orElse(ownerEmail);
+
+                StringBuilder itemsBuilder = new StringBuilder();
+                for (int i = 0; i < resolvedProducts.size(); i++) {
+                    if (i > 0) itemsBuilder.append(", ");
+                    itemsBuilder.append(resolvedProducts.get(i).getResolvedName())
+                                .append(" ×")
+                                .append(request.getItems().get(i).getQuantity());
+                }
+                String itemsSummary = itemsBuilder.toString();
+
+                String totalFormatted = "$" + String.format("%,d", totalPrice).replace(",", ".");
+
+                EmailService.OrderEmailData emailData = new EmailService.OrderEmailData(
+                        shop.getName(),
+                        clientName,
+                        savedOrder.getDeliveryType(),
+                        savedOrder.getPaymentMethod(),
+                        savedOrder.getClientAddress(),
+                        itemsSummary,
+                        totalFormatted,
+                        savedOrder.getNotes()
+                );
+                emailService.sendOrderCreatedOwner(ownerEmail, ownerName, emailData);
+            } catch (Exception ex) {
+                log.warn("No se pudo enviar email de nuevo pedido al dueño: {}", ex.getMessage());
+            }
         }
 
         return buildOrderResponse(savedOrder, shop.getName());

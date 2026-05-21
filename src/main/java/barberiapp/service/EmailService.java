@@ -50,6 +50,17 @@ public class EmailService {
             String total
     ) {}
 
+    public record OrderEmailData(
+            String shopName,
+            String clientName,
+            String deliveryType,
+            String paymentMethod,
+            String clientAddress,
+            String itemsSummary,
+            String total,
+            String notes
+    ) {}
+
     // ─── Notificaciones al super admin ────────────────────────────────────────
 
     @Async("emailExecutor")
@@ -249,6 +260,22 @@ public class EmailService {
         send(to, "Código para restablecer tu contraseña", "#2563eb", body);
     }
 
+    // ─── Pedidos: propietario ─────────────────────────────────────────────────
+
+    @Async("emailExecutor")
+    public void sendOrderCreatedOwner(String to, String ownerName, OrderEmailData data) {
+        String body = "<p style='font-size:16px;color:#111827;'>Hola, <strong>" + escHtml(ownerName) + "</strong> 🛍️</p>" +
+                      "<p style='color:#374151;margin-top:8px;'><strong>" + escHtml(data.clientName()) + "</strong> " +
+                      "ha realizado un nuevo pedido en tu negocio <strong>" + escHtml(data.shopName()) + "</strong>:</p>" +
+                      orderTable(data) +
+                      "<div style='text-align:center;margin-top:24px;'>" +
+                      "<a href='https://weserv-mu.vercel.app/admin/shops' " +
+                      "style='display:inline-block;background:#0891b2;color:#fff;font-size:14px;font-weight:600;" +
+                      "padding:12px 28px;border-radius:8px;text-decoration:none;'>Ver pedido en el panel</a>" +
+                      "</div>";
+        send(to, "Nuevo pedido en " + data.shopName(), "#0891b2", body);
+    }
+
     // ─── Citas: cliente ───────────────────────────────────────────────────────
 
     @Async("emailExecutor")
@@ -391,6 +418,24 @@ public class EmailService {
             </body>
             </html>
             """.formatted(escHtml(title), headerColor, escHtml(title), bodyContent);
+    }
+
+    private String orderTable(OrderEmailData d) {
+        String deliveryLabel = "delivery".equals(d.deliveryType()) ? "Delivery 🚚" : "Retiro en local 🏪";
+        String paymentLabel  = "transfer".equals(d.paymentMethod()) ? "Transferencia 💳" : "Efectivo 💵";
+        StringBuilder sb = new StringBuilder();
+        sb.append("<table style='width:100%;border-collapse:collapse;margin-top:20px;border-radius:8px;overflow:hidden;'>")
+          .append(row("Cliente",        d.clientName()))
+          .append(row("Productos",      d.itemsSummary()))
+          .append(row("Entrega",        deliveryLabel))
+          .append(row("Pago",           paymentLabel));
+        if (d.clientAddress() != null && !d.clientAddress().isBlank())
+            sb.append(row("Dirección", d.clientAddress()));
+        sb.append(row("Total", d.total()));
+        if (d.notes() != null && !d.notes().isBlank())
+            sb.append(row("Notas", d.notes()));
+        sb.append("</table>");
+        return sb.toString();
     }
 
     private String appointmentTable(AppointmentEmailData d) {
