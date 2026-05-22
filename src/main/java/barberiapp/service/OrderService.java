@@ -25,6 +25,7 @@ public class OrderService {
     private final BarberShopRepository barberShopRepository;
     private final ProfileRepository profileRepository;
     private final BarberRepository barberRepository;
+    private final AppUserRepository appUserRepository;
     private final EmailService emailService;
 
     // ── Estados terminales donde no se puede cambiar nada ────────────────────
@@ -225,7 +226,7 @@ public class OrderService {
     // ── Actualizar estado (admin) ─────────────────────────────────────────────
 
     @Transactional
-    public OrderResponse updateOrderStatus(Long orderId, String requesterId, String newStatus) {
+    public OrderResponse updateOrderStatus(Long orderId, String requesterId, String newStatus, String cancellationReason) {
         ShopOrder order = shopOrderRepository.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Pedido no encontrado"));
 
@@ -241,13 +242,38 @@ public class OrderService {
             throw new IllegalArgumentException("El pedido ya está en estado final: " + previousStatus);
         }
 
-        // Restaurar stock si se cancela
+        // Restaurar stock y guardar motivo si se cancela
         if ("cancelled".equals(newStatus) && !"cancelled".equals(previousStatus)) {
             restoreStock(orderId);
+            if (cancellationReason != null && !cancellationReason.isBlank()) {
+                order.setCancellationReason(cancellationReason.strip());
+            }
         }
 
         order.setStatus(newStatus);
         ShopOrder saved = shopOrderRepository.save(order);
+
+        // Notificar al cliente por email
+        try {
+            String clientEmail = null;
+            if (order.getClientUserId() != null) {
+                clientEmail = appUserRepository.findById(order.getClientUserId())
+                        .map(AppUser::getEmail).orElse(null);
+            } else if (order.getGuestEmail() != null && !order.getGuestEmail().isBlank()) {
+                clientEmail = order.getGuestEmail();
+            }
+            if (clientEmail != null) {
+                String clientName = order.getClientName() != null ? order.getClientName() : "Cliente";
+                if ("cancelled".equals(newStatus)) {
+                    emailService.sendOrderCancelledClient(clientEmail, clientName, shop.getName(), cancellationReason);
+                } else {
+                    emailService.sendOrderStatusChangedClient(clientEmail, clientName, shop.getName(), newStatus);
+                }
+            }
+        } catch (Exception ex) {
+            log.warn("No se pudo notificar al cliente del cambio de estado: {}", ex.getMessage());
+        }
+
         return buildOrderResponse(saved, shop.getName());
     }
 
@@ -307,6 +333,7 @@ public class OrderService {
                 .guestName(order.getGuestName())
                 .guestEmail(order.getGuestEmail())
                 .guestPhone(order.getGuestPhone())
+                .cancellationReason(order.getCancellationReason())
                 .source(order.getSource())
                 .status(order.getStatus())
                 .deliveryType(order.getDeliveryType())

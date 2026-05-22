@@ -277,6 +277,59 @@ public class EmailService {
         send(to, "Nuevo pedido en " + data.shopName(), "#0891b2", body);
     }
 
+    // ─── Pedidos: cliente ────────────────────────────────────────────────────
+
+    @Async("emailExecutor")
+    public void sendOrderStatusChangedClient(String to, String clientName, String shopName, String newStatus) {
+        String headerColor;
+        String emoji;
+        String statusLabel;
+        String message;
+        switch (newStatus) {
+            case "confirmed" -> {
+                headerColor = "#2563eb"; emoji = "✅";
+                statusLabel = "Confirmado";
+                message = "¡Tu pedido fue <strong>confirmado</strong> por el negocio! Pronto estará listo.";
+            }
+            case "ready" -> {
+                headerColor = "#7c3aed"; emoji = "📦";
+                statusLabel = "Listo para entregar";
+                message = "¡Tu pedido está <strong>listo</strong>! Puedes pasar a retirarlo o esperar el delivery.";
+            }
+            case "delivered" -> {
+                headerColor = "#16a34a"; emoji = "🎉";
+                statusLabel = "Entregado";
+                message = "¡Tu pedido fue <strong>entregado</strong> con éxito! Esperamos que lo disfrutes.";
+            }
+            default -> {
+                headerColor = "#6b7280"; emoji = "ℹ️";
+                statusLabel = newStatus;
+                message = "El estado de tu pedido fue actualizado a <strong>" + escHtml(newStatus) + "</strong>.";
+            }
+        }
+        String body = "<p style='font-size:16px;color:#111827;'>Hola, <strong>" + escHtml(clientName) + "</strong> " + emoji + "</p>" +
+                      "<p style='color:#374151;margin-top:8px;'>Tu pedido en <strong>" + escHtml(shopName) + "</strong> fue actualizado:</p>" +
+                      "<div style='margin:20px 0;padding:14px 18px;background:#f9fafb;border-radius:8px;border-left:4px solid " + headerColor + ";'>" +
+                      "<p style='margin:0;color:#111827;font-size:15px;'>" + message + "</p>" +
+                      "</div>" +
+                      badge(headerColor, emoji + " " + statusLabel);
+        send(to, emoji + " Tu pedido en " + shopName + ": " + statusLabel, headerColor, body);
+    }
+
+    @Async("emailExecutor")
+    public void sendOrderCancelledClient(String to, String clientName, String shopName, String reason) {
+        String reasonBlock = (reason != null && !reason.isBlank())
+                ? "<div style='margin-top:16px;padding:14px 18px;background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;'>" +
+                  "<p style='margin:0;font-size:13px;color:#991b1b;'><strong>Motivo:</strong> " + escHtml(reason) + "</p></div>"
+                : "";
+        String body = "<p style='font-size:16px;color:#111827;'>Hola, <strong>" + escHtml(clientName) + "</strong>,</p>" +
+                      "<p style='color:#374151;margin-top:8px;'>Lamentamos informarte que tu pedido en " +
+                      "<strong>" + escHtml(shopName) + "</strong> fue <strong>cancelado</strong> por el negocio.</p>" +
+                      reasonBlock +
+                      "<p style='color:#6b7280;font-size:13px;margin-top:16px;'>Si tienes dudas, por favor contacta al negocio directamente.</p>";
+        send(to, "Tu pedido en " + shopName + " fue cancelado", "#dc2626", body);
+    }
+
     // ─── Citas: cliente ───────────────────────────────────────────────────────
 
     @Async("emailExecutor")

@@ -29,6 +29,7 @@ public class OrderResponse {
     private String guestName;
     private String guestEmail;
     private String guestPhone;
+    private String cancellationReason;
     private LocalDateTime createdAt;
     private List<OrderItemResponse> items;
 }

@@ -93,6 +93,10 @@ public class ShopOrder {
     @Column(name = "transfer_proof_url", length = 500)
     private String transferProofUrl;
 
+    /** Motivo de cancelación ingresado por el dueño del negocio */
+    @Column(name = "cancellation_reason", columnDefinition = "TEXT")
+    private String cancellationReason;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 

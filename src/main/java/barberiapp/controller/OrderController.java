@@ -80,7 +80,7 @@ public class OrderController {
                                                @RequestBody UpdateOrderStatusRequest request) {
         try {
             String requesterId = getCurrentUserId();
-            return ResponseEntity.ok(orderService.updateOrderStatus(id, requesterId, request.getStatus()));
+            return ResponseEntity.ok(orderService.updateOrderStatus(id, requesterId, request.getStatus(), request.getCancellationReason()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
