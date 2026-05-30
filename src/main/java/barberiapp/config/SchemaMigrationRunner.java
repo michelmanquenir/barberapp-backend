@@ -46,6 +46,7 @@ public class SchemaMigrationRunner implements ApplicationRunner {
         migrateBarberSpecialtiesToJsonb();
         addPaymentColumnsToPassengerBookings();
         addAccountColumnsToTransportDrivers();
+        addFinanceExpenseColumns();
     }
 
     /**
@@ -368,6 +369,24 @@ public class SchemaMigrationRunner implements ApplicationRunner {
             log.info("SchemaMigration: transport_drivers.email/user_id verificadas");
         } catch (Exception e) {
             log.debug("SchemaMigration: addAccountColumnsToTransportDrivers — {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Agrega las columnas del módulo "Mis Finanzas — Gastos" si no existen.
+     * recurring: DEFAULT FALSE evita el error NOT NULL en filas antiguas.
+     * installment_number / installment_total: nullable, solo para gastos en cuotas.
+     */
+    private void addFinanceExpenseColumns() {
+        try {
+            jdbc.execute("ALTER TABLE finance_expenses ADD COLUMN IF NOT EXISTS recurring BOOLEAN DEFAULT FALSE");
+            jdbc.execute("ALTER TABLE finance_expenses ADD COLUMN IF NOT EXISTS installment_number INTEGER");
+            jdbc.execute("ALTER TABLE finance_expenses ADD COLUMN IF NOT EXISTS installment_total INTEGER");
+            // Actualizar filas existentes que tengan recurring = NULL
+            jdbc.execute("UPDATE finance_expenses SET recurring = FALSE WHERE recurring IS NULL");
+            log.info("SchemaMigration: finance_expenses.recurring/installment_number/installment_total verificadas");
+        } catch (Exception e) {
+            log.debug("SchemaMigration: addFinanceExpenseColumns — {}", e.getMessage());
         }
     }
 

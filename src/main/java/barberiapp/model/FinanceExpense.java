@@ -39,9 +39,10 @@ public class FinanceExpense {
 
     /**
      * Si es true, el gasto se repite cada mes (ej: streaming, gym).
+     * Nullable en BD para compatibilidad con filas existentes (null = false).
      */
-    @Column(nullable = false)
-    private Boolean recurring = false;
+    @Column
+    private Boolean recurring;
 
     /**
      * Número de cuota actual (ej: 10).
@@ -59,6 +60,11 @@ public class FinanceExpense {
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    /** Devuelve false si recurring es null (filas antiguas sin el campo). */
+    public boolean isRecurring() {
+        return Boolean.TRUE.equals(recurring);
+    }
 
     @PrePersist
     protected void onCreate() {
