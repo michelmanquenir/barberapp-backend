@@ -29,6 +29,7 @@ public class WalletController {
     @PostMapping("/add-funds")
     public Transaction addFunds(@RequestParam String userId, @RequestBody Map<String, Object> body) {
         Integer amount = (Integer) body.get("amount");
-        return walletService.addFunds(userId, amount, "Recarga de Saldo");
+        String description = body.get("description") instanceof String s && !s.isBlank() ? s : "Ingreso";
+        return walletService.addFunds(userId, amount, description);
     }
 }
