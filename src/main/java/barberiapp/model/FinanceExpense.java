@@ -37,12 +37,33 @@ public class FinanceExpense {
     @Column(nullable = false)
     private LocalDate date;
 
+    /**
+     * Si es true, el gasto se repite cada mes (ej: streaming, gym).
+     */
+    @Column(nullable = false)
+    private Boolean recurring = false;
+
+    /**
+     * Número de cuota actual (ej: 10).
+     * Solo se usa cuando el gasto es parte de un plan en cuotas.
+     */
+    @Column(name = "installment_number")
+    private Integer installmentNumber;
+
+    /**
+     * Total de cuotas del plan (ej: 30).
+     * Solo se usa cuando el gasto es parte de un plan en cuotas.
+     */
+    @Column(name = "installment_total")
+    private Integer installmentTotal;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
     @PrePersist
     protected void onCreate() {
         if (date == null) date = LocalDate.now();
+        if (recurring == null) recurring = false;
         if (createdAt == null) createdAt = LocalDateTime.now();
     }
 }

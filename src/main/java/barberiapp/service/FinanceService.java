@@ -116,6 +116,9 @@ public class FinanceService {
         existing.setDescription(data.getDescription());
         existing.setAmount(data.getAmount());
         existing.setDate(data.getDate());
+        existing.setRecurring(data.getRecurring() != null ? data.getRecurring() : false);
+        existing.setInstallmentNumber(data.getInstallmentNumber());
+        existing.setInstallmentTotal(data.getInstallmentTotal());
         return expenseRepo.save(existing);
     }
 
