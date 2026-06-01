@@ -37,12 +37,32 @@ public class FinanceIncome {
     @Column(nullable = false)
     private LocalDate date;
 
+    /**
+     * Si es true, el ingreso se repite cada mes (ej: sueldo, arriendo recibido).
+     * Nullable en BD para compatibilidad con filas existentes (null = false).
+     */
+    @Column
+    private Boolean recurring;
+
+    /**
+     * Cantidad de meses durante los cuales se recibirá este ingreso.
+     * Solo relevante cuando recurring = false y se quiere un ingreso temporal.
+     */
+    @Column(name = "duration_months")
+    private Integer durationMonths;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    /** Devuelve false si recurring es null (filas antiguas sin el campo). */
+    public boolean isRecurring() {
+        return Boolean.TRUE.equals(recurring);
+    }
 
     @PrePersist
     protected void onCreate() {
         if (date == null) date = LocalDate.now();
+        if (recurring == null) recurring = false;
         if (createdAt == null) createdAt = LocalDateTime.now();
     }
 }

@@ -82,6 +82,8 @@ public class FinanceService {
         existing.setDescription(data.getDescription());
         existing.setAmount(data.getAmount());
         existing.setDate(data.getDate());
+        existing.setRecurring(data.getRecurring() != null ? data.getRecurring() : false);
+        existing.setDurationMonths(data.getDurationMonths());
         return incomeRepo.save(existing);
     }
 
