@@ -23,39 +23,104 @@ public class FinanceService {
     // ── Summary ─────────────────────────────────────────────────────────────
 
     public Map<String, Object> getSummary(String userId) {
-        LocalDate now = LocalDate.now();
+        LocalDate now  = LocalDate.now();
         LocalDate from = now.withDayOfMonth(1);
-        LocalDate to = now.withDayOfMonth(now.lengthOfMonth());
+        LocalDate to   = now.withDayOfMonth(now.lengthOfMonth());
 
-        Double monthlyIncome = incomeRepo.sumByUserIdAndDateBetween(userId, from, to);
-        Double monthlyExpenses = expenseRepo.sumByUserIdAndDateBetween(userId, from, to);
-        Double pendingInstallments = installmentRepo.sumPendingAmountByUserId(userId);
-        Double totalSavings = savingGoalRepo.sumCurrentAmountByUserId(userId);
+        List<FinanceExpense> allExpenses = expenseRepo.findByUserIdOrderByDateDesc(userId);
+        List<FinanceIncome>  allIncomes  = incomeRepo.findByUserIdOrderByDateDesc(userId);
 
-        List<Object[]> expensesByCategory = expenseRepo.sumByCategoryAndPeriod(userId, from, to);
-        List<Object[]> incomesByType = incomeRepo.sumByTypeAndPeriod(userId, from, to);
-
+        // ── Gastos ──────────────────────────────────────────────────────────
+        double monthlyExpenses = 0;
         Map<String, Double> expenseMap = new HashMap<>();
-        for (Object[] row : expensesByCategory) {
-            expenseMap.put((String) row[0], (Double) row[1]);
+
+        // 1. Gastos normales (no periódicos, no cuotas) del mes actual
+        for (FinanceExpense e : allExpenses) {
+            if (e.getInstallmentNumber() != null) continue;
+            if (Boolean.TRUE.equals(e.getRecurring())) continue;
+            if (e.getDate().isBefore(from) || e.getDate().isAfter(to)) continue;
+            monthlyExpenses += e.getAmount();
+            expenseMap.merge(e.getCategory(), e.getAmount(), Double::sum);
         }
 
+        // 2. Gastos periódicos: se cuentan siempre a partir del mes en que se registraron
+        for (FinanceExpense e : allExpenses) {
+            if (!Boolean.TRUE.equals(e.getRecurring())) continue;
+            if (e.getDate().isAfter(to)) continue;
+            monthlyExpenses += e.getAmount();
+            expenseMap.merge(e.getCategory(), e.getAmount(), Double::sum);
+        }
+
+        // 3. Gastos en cuotas: para cada plan activo, contar una cuota mensual.
+        //    - Si el usuario ya registró la cuota de este mes → contar esa.
+        //    - Si no la registró aún pero el plan sigue activo → contar el monto igual.
+        Map<String, FinanceExpense> latestByPlan       = new HashMap<>();
+        Map<String, FinanceExpense> currentMonthByPlan = new HashMap<>();
+
+        for (FinanceExpense e : allExpenses) {
+            if (e.getInstallmentNumber() == null) continue;
+            if (e.getDate().isAfter(to)) continue;
+
+            String key = e.getCategory() + "|" + e.getInstallmentTotal() + "|"
+                       + (e.getDescription() != null ? e.getDescription() : "");
+
+            FinanceExpense existing = latestByPlan.get(key);
+            if (existing == null || e.getInstallmentNumber() > existing.getInstallmentNumber()) {
+                latestByPlan.put(key, e);
+            }
+
+            if (!e.getDate().isBefore(from) && !e.getDate().isAfter(to)) {
+                FinanceExpense cur = currentMonthByPlan.get(key);
+                if (cur == null || e.getInstallmentNumber() > cur.getInstallmentNumber()) {
+                    currentMonthByPlan.put(key, e);
+                }
+            }
+        }
+
+        for (String key : latestByPlan.keySet()) {
+            FinanceExpense latest = latestByPlan.get(key);
+            if (latest.getInstallmentNumber() >= latest.getInstallmentTotal()) continue; // plan completado
+
+            FinanceExpense toCount = currentMonthByPlan.containsKey(key)
+                    ? currentMonthByPlan.get(key)  // cuota ya registrada este mes
+                    : latest;                       // plan activo, cuota aún no registrada
+
+            monthlyExpenses += toCount.getAmount();
+            expenseMap.merge(toCount.getCategory(), toCount.getAmount(), Double::sum);
+        }
+
+        // ── Ingresos ─────────────────────────────────────────────────────────
+        double monthlyIncome = 0;
         Map<String, Double> incomeMap = new HashMap<>();
-        for (Object[] row : incomesByType) {
-            incomeMap.put((String) row[0], (Double) row[1]);
+
+        // 1. Ingresos no periódicos del mes actual
+        for (FinanceIncome i : allIncomes) {
+            if (Boolean.TRUE.equals(i.getRecurring())) continue;
+            if (i.getDate().isBefore(from) || i.getDate().isAfter(to)) continue;
+            monthlyIncome += i.getAmount();
+            incomeMap.merge(i.getType(), i.getAmount(), Double::sum);
         }
 
-        double safeIncome = monthlyIncome != null ? monthlyIncome : 0;
-        double safeExpenses = monthlyExpenses != null ? monthlyExpenses : 0;
+        // 2. Ingresos periódicos: se cuentan siempre a partir del mes en que se registraron
+        for (FinanceIncome i : allIncomes) {
+            if (!Boolean.TRUE.equals(i.getRecurring())) continue;
+            if (i.getDate().isAfter(to)) continue;
+            monthlyIncome += i.getAmount();
+            incomeMap.merge(i.getType(), i.getAmount(), Double::sum);
+        }
+
+        // ── Resultado ────────────────────────────────────────────────────────
+        Double pendingInstallments = installmentRepo.sumPendingAmountByUserId(userId);
+        Double totalSavings        = savingGoalRepo.sumCurrentAmountByUserId(userId);
 
         Map<String, Object> summary = new HashMap<>();
-        summary.put("monthlyIncome", safeIncome);
-        summary.put("monthlyExpenses", safeExpenses);
-        summary.put("monthlyBalance", safeIncome - safeExpenses);
-        summary.put("pendingInstallments", pendingInstallments != null ? pendingInstallments : 0);
-        summary.put("totalSavings", totalSavings != null ? totalSavings : 0);
-        summary.put("expensesByCategory", expenseMap);
-        summary.put("incomesByType", incomeMap);
+        summary.put("monthlyIncome",        monthlyIncome);
+        summary.put("monthlyExpenses",      monthlyExpenses);
+        summary.put("monthlyBalance",       monthlyIncome - monthlyExpenses);
+        summary.put("pendingInstallments",  pendingInstallments != null ? pendingInstallments : 0);
+        summary.put("totalSavings",         totalSavings != null ? totalSavings : 0);
+        summary.put("expensesByCategory",   expenseMap);
+        summary.put("incomesByType",        incomeMap);
         return summary;
     }
 

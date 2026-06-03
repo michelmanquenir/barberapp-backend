@@ -14,28 +14,12 @@ public interface FinanceExpenseRepository extends JpaRepository<FinanceExpense, 
 
     List<FinanceExpense> findByUserIdOrderByDateDesc(String userId);
 
-    // Incluye gastos del mes actual + gastos periódicos registrados en cualquier mes anterior
-    @Query("""
-        SELECT SUM(e.amount) FROM FinanceExpense e
-        WHERE e.user.id = :userId
-        AND (
-            (e.date BETWEEN :from AND :to AND (e.recurring IS NULL OR e.recurring = false))
-            OR (e.recurring = true AND e.date <= :to)
-        )
-        """)
+    @Query("SELECT SUM(e.amount) FROM FinanceExpense e WHERE e.user.id = :userId AND e.date BETWEEN :from AND :to")
     Double sumByUserIdAndDateBetween(@Param("userId") String userId,
                                      @Param("from") LocalDate from,
                                      @Param("to") LocalDate to);
 
-    @Query("""
-        SELECT e.category, SUM(e.amount) FROM FinanceExpense e
-        WHERE e.user.id = :userId
-        AND (
-            (e.date BETWEEN :from AND :to AND (e.recurring IS NULL OR e.recurring = false))
-            OR (e.recurring = true AND e.date <= :to)
-        )
-        GROUP BY e.category
-        """)
+    @Query("SELECT e.category, SUM(e.amount) FROM FinanceExpense e WHERE e.user.id = :userId AND e.date BETWEEN :from AND :to GROUP BY e.category")
     List<Object[]> sumByCategoryAndPeriod(@Param("userId") String userId,
                                            @Param("from") LocalDate from,
                                            @Param("to") LocalDate to);
