@@ -186,6 +186,7 @@ public class FinanceService {
         existing.setRecurring(data.getRecurring() != null ? data.getRecurring() : false);
         existing.setInstallmentNumber(data.getInstallmentNumber());
         existing.setInstallmentTotal(data.getInstallmentTotal());
+        existing.setBillingDay(data.getBillingDay());
         return expenseRepo.save(existing);
     }
 

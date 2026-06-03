@@ -58,6 +58,13 @@ public class FinanceExpense {
     @Column(name = "installment_total")
     private Integer installmentTotal;
 
+    /**
+     * Día del mes en que la tarjeta factura (1-31).
+     * Permite calcular la próxima fecha de cargo.
+     */
+    @Column(name = "billing_day")
+    private Integer billingDay;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
