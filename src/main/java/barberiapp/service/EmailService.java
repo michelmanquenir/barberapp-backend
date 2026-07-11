@@ -165,7 +165,40 @@ public class EmailService {
         send(to, "Tu producto no fue aprobado", "#dc2626", body);
     }
 
-    // ─── Gym: bienvenida con contraseña provisional ───────────────────────────
+    // ─── Gym ─────────────────────────────────────────────────────────────────
+
+    @Async("emailExecutor")
+    public void sendGymMemberEnrollment(String to, String memberName, String shopName, String joinDateStr) {
+        String appUrl = "https://weserv-mu.vercel.app";
+        String body = "<p style='font-size:16px;color:#111827;'>Hola, <strong>" + escHtml(memberName) + "</strong> 🏋️</p>" +
+                      "<p style='color:#374151;margin-top:8px;'>El equipo de <strong>" + escHtml(shopName) + "</strong> " +
+                      "te ha registrado como miembro. Ya puedes ver tu información desde la app:</p>" +
+                      "<table style='width:100%;border-collapse:collapse;margin-top:20px;border-radius:8px;overflow:hidden;'>" +
+                      row("Gimnasio",          shopName) +
+                      row("Fecha de inicio",   joinDateStr) +
+                      "</table>" +
+                      "<div style='text-align:center;margin-top:28px;'>" +
+                      "<a href='" + appUrl + "/login' style='display:inline-block;background:#059669;color:#fff;font-size:14px;" +
+                      "font-weight:600;padding:12px 28px;border-radius:8px;text-decoration:none;'>Ver mi información</a>" +
+                      "</div>" +
+                      "<p style='color:#9ca3af;font-size:12px;margin-top:24px;text-align:center;'>" +
+                      "Si no esperabas este correo, puedes ignorarlo con seguridad.</p>";
+        send(to, "¡Te han registrado en " + shopName + "!", "#059669", body);
+    }
+
+    @Async("emailExecutor")
+    public void sendNewGymMemberToOwner(String to, String ownerName, String memberName,
+                                         String memberEmail, String shopName, String joinDateStr) {
+        String body = "<p style='font-size:16px;color:#111827;'>Hola, <strong>" + escHtml(ownerName) + "</strong> 💪</p>" +
+                      "<p style='color:#374151;margin-top:8px;'>Se ha registrado un nuevo miembro en " +
+                      "<strong>" + escHtml(shopName) + "</strong>:</p>" +
+                      "<table style='width:100%;border-collapse:collapse;margin-top:20px;border-radius:8px;overflow:hidden;'>" +
+                      row("Nombre",          memberName) +
+                      row("Email",           memberEmail != null && !memberEmail.isBlank() ? memberEmail : "—") +
+                      row("Fecha de inicio", joinDateStr) +
+                      "</table>";
+        send(to, "Nuevo miembro registrado: " + memberName, "#7c3aed", body);
+    }
 
     @Async("emailExecutor")
     public void sendGymMemberWelcome(String to, String memberName, String shopName, String tempPassword) {

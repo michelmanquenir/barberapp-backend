@@ -10,7 +10,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -83,6 +85,8 @@ public class GymService {
         if (req.getName() == null || req.getName().isBlank())
             throw new IllegalArgumentException("El nombre es obligatorio");
 
+        LocalDate joinDate = req.getJoinDate() != null ? req.getJoinDate() : LocalDate.now();
+
         GymMember m = GymMember.builder()
                 .shopId(shopId)
                 .name(req.getName().trim())
@@ -93,11 +97,16 @@ public class GymService {
                 .emergencyContactName(req.getEmergencyContactName())
                 .emergencyContactPhone(req.getEmergencyContactPhone())
                 .medicalNotes(req.getMedicalNotes())
-                .joinDate(req.getJoinDate() != null ? req.getJoinDate() : LocalDate.now())
+                .joinDate(joinDate)
                 .status(req.getStatus() != null ? req.getStatus() : "active")
                 .photoUrl(req.getPhotoUrl())
                 .build();
         memberRepo.save(m);
+
+        // Cargar negocio y datos del dueño una sola vez
+        BarberShop shop = shopRepo.findById(shopId).orElse(null);
+        String shopName  = shop != null ? shop.getName() : "WeServ";
+        String joinDateStr = joinDate.format(DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy", Locale.of("es", "ES")));
 
         // ── Crear cuenta en la app con contraseña provisional ─────────────────
         if (req.isCreateAppAccount()) {
@@ -118,7 +127,7 @@ public class GymService {
                     .rut(req.getRut() != null ? req.getRut().trim().toUpperCase() : null)
                     .passwordHash(passwordEncoder.encode(tempPassword))
                     .role(UserRole.CLIENT)
-                    .status(UserStatus.ACTIVE)   // aprobado directo: el gym lo está registrando
+                    .status(UserStatus.ACTIVE)
                     .mustChangePassword(true)
                     .build();
             userRepo.save(newUser);
@@ -129,12 +138,21 @@ public class GymService {
             profile.setFullName(req.getName().trim());
             profileRepo.save(profile);
 
-            // Obtener nombre del negocio para el email
-            String shopName = shopRepo.findById(shopId)
-                    .map(BarberShop::getName)
-                    .orElse("WeServ");
-
             emailService.sendGymMemberWelcome(email, req.getName().trim(), shopName, tempPassword);
+
+        } else if (req.getEmail() != null && !req.getEmail().isBlank()) {
+            // Usuario existente: enviar confirmación de matrícula sin contraseña
+            emailService.sendGymMemberEnrollment(req.getEmail().trim(), req.getName().trim(), shopName, joinDateStr);
+        }
+
+        // ── Notificar al dueño del gym ────────────────────────────────────────
+        if (shop != null && shop.getOwner() != null) {
+            String ownerEmail = shop.getOwner().getEmail();
+            String ownerName  = profileRepo.findById(shop.getOwner().getId())
+                    .map(Profile::getFullName)
+                    .orElse(ownerEmail);
+            emailService.sendNewGymMemberToOwner(ownerEmail, ownerName, req.getName().trim(),
+                    req.getEmail(), shopName, joinDateStr);
         }
 
         return GymMemberResponse.from(m);
