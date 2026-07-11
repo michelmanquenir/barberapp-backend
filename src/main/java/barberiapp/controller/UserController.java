@@ -38,7 +38,8 @@ public class UserController {
                 user.getEmail(),
                 profile != null ? profile.getFullName() : null,
                 profile != null ? profile.getPhone() : null,
-                user.getRut()
+                user.getRut(),
+                profile != null ? profile.getBirthdate() : null
         );
 
         return ResponseEntity.ok(response);
