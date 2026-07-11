@@ -9,5 +9,6 @@ import java.util.Optional;
 @Repository
 public interface AppUserRepository extends JpaRepository<AppUser, String> {
     Optional<AppUser> findByEmail(String email);
+    Optional<AppUser> findByEmailIgnoreCase(String email);
     boolean existsByRut(String rut);
 }
