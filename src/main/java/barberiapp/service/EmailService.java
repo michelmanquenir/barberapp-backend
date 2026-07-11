@@ -178,7 +178,7 @@ public class EmailService {
                       row("Fecha de inicio",   joinDateStr) +
                       "</table>" +
                       "<div style='text-align:center;margin-top:28px;'>" +
-                      "<a href='" + appUrl + "/login' style='display:inline-block;background:#059669;color:#fff;font-size:14px;" +
+                      "<a href='" + appUrl + "/memberships' style='display:inline-block;background:#059669;color:#fff;font-size:14px;" +
                       "font-weight:600;padding:12px 28px;border-radius:8px;text-decoration:none;'>Ver mi información</a>" +
                       "</div>" +
                       "<p style='color:#9ca3af;font-size:12px;margin-top:24px;text-align:center;'>" +
@@ -216,8 +216,8 @@ public class EmailService {
                       "⚠️ <strong>Importante:</strong> Deberás cambiar esta contraseña la primera vez que inicies sesión." +
                       "</p></div>" +
                       "<div style='text-align:center;margin-top:28px;'>" +
-                      "<a href='" + appUrl + "/login' style='display:inline-block;background:#059669;color:#fff;font-size:14px;font-weight:600;" +
-                      "padding:12px 28px;border-radius:8px;text-decoration:none;'>Ingresar a WeServ</a>" +
+                      "<a href='" + appUrl + "/memberships' style='display:inline-block;background:#059669;color:#fff;font-size:14px;font-weight:600;" +
+                      "padding:12px 28px;border-radius:8px;text-decoration:none;'>Ver mis membresías</a>" +
                       "</div>" +
                       "<p style='color:#9ca3af;font-size:12px;margin-top:24px;text-align:center;'>" +
                       "Si no esperabas este correo, puedes ignorarlo con seguridad.</p>";

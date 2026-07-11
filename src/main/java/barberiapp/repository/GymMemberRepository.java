@@ -13,4 +13,5 @@ public interface GymMemberRepository extends JpaRepository<GymMember, Long> {
     Optional<GymMember> findByIdAndShopId(Long id, String shopId);
     long countByShopId(String shopId);
     long countByShopIdAndStatus(String shopId, String status);
+    List<GymMember> findByEmailIgnoreCase(String email);
 }

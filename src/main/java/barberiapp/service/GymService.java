@@ -366,6 +366,40 @@ public class GymService {
         progressRepo.delete(p);
     }
 
+    // ─── MIS MEMBRESÍAS (cliente) ─────────────────────────────────────────────
+
+    @Transactional(readOnly = true)
+    public List<MyGymMembershipResponse> getMyGymMemberships(String email) {
+        List<GymMember> members = memberRepo.findByEmailIgnoreCase(email);
+        return members.stream().map(m -> {
+            BarberShop shop = shopRepo.findById(m.getShopId()).orElse(null);
+
+            MyGymMembershipResponse r = new MyGymMembershipResponse();
+            r.setMemberId(m.getId());
+            r.setShopId(m.getShopId());
+            r.setShopName(shop != null ? shop.getName() : "—");
+            r.setShopSlug(shop != null ? shop.getSlug() : null);
+            r.setMemberName(m.getName());
+            r.setJoinDate(m.getJoinDate());
+            r.setMemberStatus(m.getStatus());
+
+            membershipRepo.findFirstByMemberIdAndStatusOrderByEndDateDesc(m.getId(), "active")
+                    .ifPresent(mem -> {
+                        r.setMembershipId(mem.getId());
+                        r.setPlanName(mem.getPlanName());
+                        r.setMonthlyPrice(mem.getMonthlyPrice());
+                        r.setStartDate(mem.getStartDate());
+                        r.setEndDate(mem.getEndDate());
+                        r.setMembershipStatus(mem.getStatus());
+                        r.setPaymentStatus(mem.getPaymentStatus());
+                        r.setVisitsAllowed(mem.getVisitsAllowed());
+                        r.setVisitsUsed(mem.getVisitsUsed());
+                    });
+
+            return r;
+        }).collect(Collectors.toList());
+    }
+
     // ─── STATS ────────────────────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
