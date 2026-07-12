@@ -25,6 +25,7 @@ public class GymService {
     private final GymMembershipRepository membershipRepo;
     private final GymAttendanceRepository attendanceRepo;
     private final GymProgressRepository progressRepo;
+    private final GymPlanRepository planRepo;
     private final BarberShopRepository shopRepo;
     private final AppUserRepository userRepo;
     private final ProfileRepository profileRepo;
@@ -364,6 +365,55 @@ public class GymService {
                 .filter(pr -> pr.getShopId().equals(shopId))
                 .orElseThrow(() -> new IllegalArgumentException("Registro no encontrado"));
         progressRepo.delete(p);
+    }
+
+    // ─── PLANES DEL GYM ──────────────────────────────────────────────────────
+
+    @Transactional(readOnly = true)
+    public List<GymPlanResponse> getPlans(String shopId) {
+        return planRepo.findByShopIdOrderByPriceAsc(shopId)
+                .stream().map(GymPlanResponse::from).collect(Collectors.toList());
+    }
+
+    @Transactional
+    public GymPlanResponse createPlan(String shopId, GymPlanRequest req) {
+        if (req.getName() == null || req.getName().isBlank())
+            throw new IllegalArgumentException("El nombre del plan es obligatorio");
+        if (req.getPrice() == null || req.getPrice() < 0)
+            throw new IllegalArgumentException("El precio es obligatorio");
+        if (req.getDurationMonths() == null || req.getDurationMonths() < 1)
+            throw new IllegalArgumentException("La duración debe ser al menos 1 mes");
+
+        GymPlan plan = GymPlan.builder()
+                .shopId(shopId)
+                .name(req.getName().trim())
+                .description(req.getDescription())
+                .price(req.getPrice())
+                .durationMonths(req.getDurationMonths())
+                .visitsAllowed(req.getVisitsAllowed())
+                .active(req.getActive() != null ? req.getActive() : true)
+                .build();
+        return GymPlanResponse.from(planRepo.save(plan));
+    }
+
+    @Transactional
+    public GymPlanResponse updatePlan(Long planId, String shopId, GymPlanRequest req) {
+        GymPlan plan = planRepo.findByIdAndShopId(planId, shopId)
+                .orElseThrow(() -> new IllegalArgumentException("Plan no encontrado"));
+        if (req.getName()          != null) plan.setName(req.getName().trim());
+        if (req.getDescription()   != null) plan.setDescription(req.getDescription());
+        if (req.getPrice()         != null) plan.setPrice(req.getPrice());
+        if (req.getDurationMonths() != null) plan.setDurationMonths(req.getDurationMonths());
+        if (req.getVisitsAllowed() != null) plan.setVisitsAllowed(req.getVisitsAllowed());
+        if (req.getActive()        != null) plan.setActive(req.getActive());
+        return GymPlanResponse.from(planRepo.save(plan));
+    }
+
+    @Transactional
+    public void deletePlan(Long planId, String shopId) {
+        GymPlan plan = planRepo.findByIdAndShopId(planId, shopId)
+                .orElseThrow(() -> new IllegalArgumentException("Plan no encontrado"));
+        planRepo.delete(plan);
     }
 
     // ─── MIS MEMBRESÍAS (cliente) ─────────────────────────────────────────────

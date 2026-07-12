@@ -193,6 +193,49 @@ public class GymController {
         }
     }
 
+    // ─── PLANES ───────────────────────────────────────────────────────────────
+
+    @GetMapping("/plans")
+    public ResponseEntity<?> getPlans(@PathVariable String shopId) {
+        try {
+            return ResponseEntity.ok(gymService.getPlans(shopId));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/plans")
+    public ResponseEntity<?> createPlan(@PathVariable String shopId,
+                                         @RequestBody GymPlanRequest req) {
+        try {
+            return ResponseEntity.ok(gymService.createPlan(shopId, req));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PutMapping("/plans/{planId}")
+    public ResponseEntity<?> updatePlan(@PathVariable String shopId,
+                                         @PathVariable Long planId,
+                                         @RequestBody GymPlanRequest req) {
+        try {
+            return ResponseEntity.ok(gymService.updatePlan(planId, shopId, req));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/plans/{planId}")
+    public ResponseEntity<?> deletePlan(@PathVariable String shopId,
+                                         @PathVariable Long planId) {
+        try {
+            gymService.deletePlan(planId, shopId);
+            return ResponseEntity.ok(Map.of("message", "Plan eliminado"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     // ─── STATS ────────────────────────────────────────────────────────────────
 
     @GetMapping("/stats")
