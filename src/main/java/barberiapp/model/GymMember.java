@@ -23,6 +23,10 @@ public class GymMember {
     @Column(length = 150)
     private String email;
 
+    /** ID del AppUser vinculado (puede diferir del email del miembro) */
+    @Column(name = "app_user_id", length = 36)
+    private String appUserId;
+
     @Column(length = 20)
     private String phone;
 

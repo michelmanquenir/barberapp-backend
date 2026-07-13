@@ -16,6 +16,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -88,10 +89,20 @@ public class GymService {
 
         LocalDate joinDate = req.getJoinDate() != null ? req.getJoinDate() : LocalDate.now();
 
+        String normalizedEmail = (req.getEmail() != null && !req.getEmail().isBlank())
+                ? req.getEmail().trim().toLowerCase() : null;
+
+        // Si el email ya pertenece a un usuario de la app, vincularlo
+        String linkedUserId = null;
+        if (normalizedEmail != null) {
+            linkedUserId = userRepo.findByEmail(normalizedEmail).map(AppUser::getId).orElse(null);
+        }
+
         GymMember m = GymMember.builder()
                 .shopId(shopId)
                 .name(req.getName().trim())
-                .email(req.getEmail())
+                .email(normalizedEmail)
+                .appUserId(linkedUserId)
                 .phone(req.getPhone())
                 .birthDate(req.getBirthDate())
                 .rut(req.getRut())
@@ -139,6 +150,10 @@ public class GymService {
             profile.setFullName(req.getName().trim());
             profileRepo.save(profile);
 
+            // Vincular el miembro recién creado al nuevo usuario
+            m.setAppUserId(userId);
+            memberRepo.save(m);
+
             emailService.sendGymMemberWelcome(email, req.getName().trim(), shopName, tempPassword);
 
         } else if (req.getEmail() != null && !req.getEmail().isBlank()) {
@@ -164,7 +179,15 @@ public class GymService {
         GymMember m = memberRepo.findByIdAndShopId(memberId, shopId)
                 .orElseThrow(() -> new IllegalArgumentException("Miembro no encontrado"));
         if (req.getName() != null) m.setName(req.getName().trim());
-        if (req.getEmail() != null) m.setEmail(req.getEmail());
+        if (req.getEmail() != null) {
+            String newEmail = req.getEmail().trim().toLowerCase();
+            m.setEmail(newEmail);
+            // Re-vincular al usuario de la app si el email corresponde a una cuenta
+            userRepo.findByEmail(newEmail).ifPresentOrElse(
+                    u -> m.setAppUserId(u.getId()),
+                    ()  -> m.setAppUserId(null)
+            );
+        }
         if (req.getPhone() != null) m.setPhone(req.getPhone());
         if (req.getBirthDate() != null) m.setBirthDate(req.getBirthDate());
         if (req.getRut() != null) m.setRut(req.getRut());
@@ -420,7 +443,16 @@ public class GymService {
 
     @Transactional(readOnly = true)
     public List<MyGymMembershipResponse> getMyGymMemberships(String email) {
-        List<GymMember> members = memberRepo.findByEmailIgnoreCase(email);
+        // Buscar por email del JWT y también por userId (por si el miembro tiene otro email registrado)
+        String userId = userRepo.findByEmail(email).map(AppUser::getId).orElse(null);
+
+        List<GymMember> byEmail  = memberRepo.findByEmailIgnoreCase(email);
+        List<GymMember> byUserId = userId != null ? memberRepo.findByAppUserId(userId) : List.of();
+
+        // Unir sin duplicados (el mismo miembro podría aparecer en ambas listas)
+        List<GymMember> members = Stream.concat(byEmail.stream(), byUserId.stream())
+                .collect(Collectors.toMap(GymMember::getId, m -> m, (a, b) -> a))
+                .values().stream().toList();
         return members.stream().map(m -> {
             BarberShop shop = shopRepo.findById(m.getShopId()).orElse(null);
 
