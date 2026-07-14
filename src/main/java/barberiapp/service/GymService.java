@@ -442,15 +442,18 @@ public class GymService {
     // ─── MIS MEMBRESÍAS (cliente) ─────────────────────────────────────────────
 
     @Transactional(readOnly = true)
-    public List<MyGymMembershipResponse> getMyGymMemberships(String email) {
-        // Buscar por email del JWT y también por userId (por si el miembro tiene otro email registrado)
-        String userId = userRepo.findByEmail(email).map(AppUser::getId).orElse(null);
+    public List<MyGymMembershipResponse> getMyGymMemberships(String userId) {
+        // JWT principal es el userId (UUID), no el email
+        AppUser user = userRepo.findById(userId).orElse(null);
 
-        List<GymMember> byEmail  = memberRepo.findByEmailIgnoreCase(email);
-        List<GymMember> byUserId = userId != null ? memberRepo.findByAppUserId(userId) : List.of();
+        // Buscar por appUserId (vínculo directo) y también por email del usuario
+        List<GymMember> byUserId = memberRepo.findByAppUserId(userId);
+        List<GymMember> byEmail  = (user != null)
+                ? memberRepo.findByEmailIgnoreCase(user.getEmail())
+                : List.of();
 
-        // Unir sin duplicados (el mismo miembro podría aparecer en ambas listas)
-        List<GymMember> members = Stream.concat(byEmail.stream(), byUserId.stream())
+        // Unir sin duplicados
+        List<GymMember> members = Stream.concat(byUserId.stream(), byEmail.stream())
                 .collect(Collectors.toMap(GymMember::getId, m -> m, (a, b) -> a))
                 .values().stream().toList();
         return members.stream().map(m -> {

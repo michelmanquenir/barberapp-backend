@@ -18,8 +18,8 @@ public class ClientGymController {
     @GetMapping("/my-memberships")
     public ResponseEntity<?> getMyMemberships() {
         try {
-            String email = SecurityContextHolder.getContext().getAuthentication().getName();
-            return ResponseEntity.ok(gymService.getMyGymMemberships(email));
+            String userId = SecurityContextHolder.getContext().getAuthentication().getName();
+            return ResponseEntity.ok(gymService.getMyGymMemberships(userId));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
