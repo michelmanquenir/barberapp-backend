@@ -46,6 +46,26 @@ public class GymService {
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
+    /** Expira en la BD todas las membresías activas con fecha de vencimiento pasada. */
+    private void expireOverdueMemberships(String shopId) {
+        List<GymMembership> overdue = membershipRepo
+                .findByShopIdAndStatusAndEndDateBefore(shopId, "active", LocalDate.now());
+        if (!overdue.isEmpty()) {
+            overdue.forEach(m -> m.setStatus("expired"));
+            membershipRepo.saveAll(overdue);
+        }
+    }
+
+    /** Expira la membresía activa de un miembro si su fecha de vencimiento ya pasó. */
+    private void expireOverdueMembershipsForMember(Long memberId) {
+        List<GymMembership> overdue = membershipRepo
+                .findByMemberIdAndStatusAndEndDateBefore(memberId, "active", LocalDate.now());
+        if (!overdue.isEmpty()) {
+            overdue.forEach(m -> m.setStatus("expired"));
+            membershipRepo.saveAll(overdue);
+        }
+    }
+
     private String requireShopId(String slug) {
         return shopRepo.findBySlug(slug)
                 .map(BarberShop::getId)
@@ -54,10 +74,12 @@ public class GymService {
 
     // ─── MIEMBROS ─────────────────────────────────────────────────────────────
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<GymMemberResponse> getMembers(String shopId) {
+        // Expirar membresías vencidas antes de devolver datos
+        expireOverdueMemberships(shopId);
+
         List<GymMember> members = memberRepo.findByShopIdOrderByNameAsc(shopId);
-        // Cargar membresía activa y total asistencias en batch
         Map<Long, GymMembership> activeMemberships = membershipRepo
                 .findByShopIdAndStatusOrderByEndDateAsc(shopId, "active")
                 .stream().collect(Collectors.toMap(GymMembership::getMemberId, m -> m, (a, b) -> a));
@@ -71,8 +93,10 @@ public class GymService {
         }).collect(Collectors.toList());
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public GymMemberResponse getMember(Long memberId, String shopId) {
+        expireOverdueMembershipsForMember(memberId);
+
         GymMember m = memberRepo.findByIdAndShopId(memberId, shopId)
                 .orElseThrow(() -> new IllegalArgumentException("Miembro no encontrado"));
         GymMemberResponse r = GymMemberResponse.from(m);
@@ -209,10 +233,11 @@ public class GymService {
 
     // ─── MEMBRESÍAS ───────────────────────────────────────────────────────────
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<GymMembershipResponse> getMemberships(Long memberId, String shopId) {
         memberRepo.findByIdAndShopId(memberId, shopId)
                 .orElseThrow(() -> new IllegalArgumentException("Miembro no encontrado"));
+        expireOverdueMembershipsForMember(memberId);
         return membershipRepo.findByMemberIdOrderByCreatedAtDesc(memberId)
                 .stream().map(GymMembershipResponse::from).collect(Collectors.toList());
     }
@@ -441,7 +466,7 @@ public class GymService {
 
     // ─── MIS MEMBRESÍAS (cliente) ─────────────────────────────────────────────
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<MyGymMembershipResponse> getMyGymMemberships(String userId) {
         // JWT principal es el userId (UUID), no el email
         AppUser user = userRepo.findById(userId).orElse(null);
@@ -456,6 +481,10 @@ public class GymService {
         List<GymMember> members = Stream.concat(byUserId.stream(), byEmail.stream())
                 .collect(Collectors.toMap(GymMember::getId, m -> m, (a, b) -> a))
                 .values().stream().toList();
+
+        // Expirar membresías vencidas de cada miembro encontrado
+        members.forEach(m -> expireOverdueMembershipsForMember(m.getId()));
+
         return members.stream().map(m -> {
             BarberShop shop = shopRepo.findById(m.getShopId()).orElse(null);
 
@@ -487,8 +516,9 @@ public class GymService {
 
     // ─── STATS ────────────────────────────────────────────────────────────────
 
-    @Transactional(readOnly = true)
+    @Transactional
     public Map<String, Object> getStats(String shopId) {
+        expireOverdueMemberships(shopId);
         long totalMembers   = memberRepo.countByShopId(shopId);
         long activeMembers  = memberRepo.countByShopIdAndStatus(shopId, "active");
         long activeMemships = membershipRepo.countByShopIdAndStatus(shopId, "active");
