@@ -514,6 +514,70 @@ public class GymService {
         }).collect(Collectors.toList());
     }
 
+    // ─── SELF CHECK-IN (QR) ───────────────────────────────────────────────────
+
+    @Transactional
+    public SelfCheckInResponse selfCheckIn(String userId, String shopId) {
+        AppUser user = userRepo.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+
+        // Buscar al miembro en este gym por appUserId o email
+        List<GymMember> byUserId = memberRepo.findByAppUserId(userId);
+        List<GymMember> byEmail  = memberRepo.findByEmailIgnoreCase(user.getEmail());
+        GymMember member = Stream.concat(byUserId.stream(), byEmail.stream())
+                .collect(Collectors.toMap(GymMember::getId, m -> m, (a, b) -> a))
+                .values().stream()
+                .filter(m -> m.getShopId().equals(shopId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("No eres miembro de este gimnasio"));
+
+        if ("suspended".equals(member.getStatus())) {
+            throw new IllegalArgumentException("Tu cuenta de miembro está suspendida. Contacta al administrador.");
+        }
+
+        // Expirar membresías vencidas por fecha antes de validar
+        expireOverdueMembershipsForMember(member.getId());
+
+        GymMembership membership = membershipRepo
+                .findFirstByMemberIdAndStatusOrderByEndDateDesc(member.getId(), "active")
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "No tienes una membresía activa en este gimnasio. Renueva tu plan para continuar."));
+
+        // Registrar asistencia
+        GymAttendance att = GymAttendance.builder()
+                .memberId(member.getId())
+                .shopId(shopId)
+                .attendanceDate(LocalDate.now())
+                .isTrialClass(false)
+                .build();
+        attendanceRepo.save(att);
+
+        // Descontar visita si la membresía tiene límite
+        boolean justExpired = false;
+        if (membership.getVisitsAllowed() != null) {
+            int used = (membership.getVisitsUsed() != null ? membership.getVisitsUsed() : 0) + 1;
+            membership.setVisitsUsed(used);
+            if (used >= membership.getVisitsAllowed()) {
+                membership.setStatus("expired");
+                justExpired = true;
+            }
+            membershipRepo.save(membership);
+        }
+
+        BarberShop shop = shopRepo.findById(shopId).orElse(null);
+
+        SelfCheckInResponse r = new SelfCheckInResponse();
+        r.setMemberName(member.getName());
+        r.setShopName(shop != null ? shop.getName() : "—");
+        r.setPlanName(membership.getPlanName());
+        r.setVisitsAllowed(membership.getVisitsAllowed());
+        r.setVisitsUsed(membership.getVisitsUsed());
+        r.setEndDate(membership.getEndDate());
+        r.setAttendanceDate(LocalDate.now());
+        r.setMembershipJustExpired(justExpired);
+        return r;
+    }
+
     // ─── STATS ────────────────────────────────────────────────────────────────
 
     @Transactional
