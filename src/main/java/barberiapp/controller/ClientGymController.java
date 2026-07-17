@@ -39,4 +39,42 @@ public class ClientGymController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
+
+    // ─── Clases — cliente ─────────────────────────────────────────────────────
+
+    @GetMapping("/{shopId}/my-class-enrollments")
+    public ResponseEntity<?> getMyClassEnrollments(@PathVariable String shopId) {
+        try {
+            String userId = SecurityContextHolder.getContext().getAuthentication().getName();
+            return ResponseEntity.ok(gymService.getMyClassEnrollments(userId, shopId));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/{shopId}/classes/{classId}/enroll")
+    public ResponseEntity<?> selfEnroll(
+            @PathVariable String shopId,
+            @PathVariable Long classId) {
+        try {
+            String userId = SecurityContextHolder.getContext().getAuthentication().getName();
+            gymService.selfEnrollInClass(userId, shopId, classId);
+            return ResponseEntity.ok(Map.of("enrolled", true));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/{shopId}/classes/{classId}/enroll")
+    public ResponseEntity<?> selfUnenroll(
+            @PathVariable String shopId,
+            @PathVariable Long classId) {
+        try {
+            String userId = SecurityContextHolder.getContext().getAuthentication().getName();
+            gymService.selfUnenrollFromClass(userId, shopId, classId);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 }

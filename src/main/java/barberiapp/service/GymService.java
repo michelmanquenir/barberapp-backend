@@ -11,9 +11,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -32,6 +34,8 @@ public class GymService {
     private final ProfileRepository profileRepo;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private final GymClassRepository classRepo;
+    private final GymClassEnrollmentRepository classEnrollmentRepo;
 
     private static final String TEMP_PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#$!";
     private static final SecureRandom RANDOM = new SecureRandom();
@@ -576,6 +580,77 @@ public class GymService {
         r.setAttendanceDate(LocalDate.now());
         r.setMembershipJustExpired(justExpired);
         return r;
+    }
+
+    // ─── CLASES — INSCRIPCIÓN DE CLIENTES ────────────────────────────────────
+
+    /** Encuentra el GymMember de este usuario en este gym (por appUserId o email). */
+    private Optional<GymMember> findMemberByUserId(String userId, String shopId) {
+        Optional<GymMember> byUserId = memberRepo.findByAppUserId(userId).stream()
+                .filter(m -> shopId.equals(m.getShopId())).findFirst();
+        if (byUserId.isPresent()) return byUserId;
+        AppUser user = userRepo.findById(userId).orElse(null);
+        if (user == null || user.getEmail() == null) return Optional.empty();
+        return memberRepo.findByEmailIgnoreCase(user.getEmail()).stream()
+                .filter(m -> shopId.equals(m.getShopId())).findFirst();
+    }
+
+    /**
+     * Devuelve al cliente: si es miembro, si tiene membresía activa, y las clases en las que está inscrito.
+     */
+    @Transactional
+    public Map<String, Object> getMyClassEnrollments(String userId, String shopId) {
+        Optional<GymMember> opt = findMemberByUserId(userId, shopId);
+        if (opt.isEmpty()) {
+            return Map.of("isMember", false, "hasActiveMembership", false, "enrolledClassIds", List.of());
+        }
+        GymMember member = opt.get();
+        expireOverdueMembershipsForMember(member.getId());
+        boolean hasActive = membershipRepo
+                .findFirstByMemberIdAndStatusOrderByEndDateDesc(member.getId(), "active").isPresent();
+        List<Long> ids = classEnrollmentRepo.findByMemberIdAndShopId(member.getId(), shopId)
+                .stream().map(GymClassEnrollment::getClassId).collect(Collectors.toList());
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("isMember", true);
+        result.put("hasActiveMembership", hasActive);
+        result.put("enrolledClassIds", ids);
+        return result;
+    }
+
+    /** Cliente se inscribe en una clase; requiere membresía activa en el gym. */
+    @Transactional
+    public void selfEnrollInClass(String userId, String shopId, Long classId) {
+        GymMember member = findMemberByUserId(userId, shopId)
+                .orElseThrow(() -> new IllegalArgumentException("No estás registrado como miembro de este gimnasio"));
+
+        expireOverdueMembershipsForMember(member.getId());
+        boolean hasActive = membershipRepo
+                .findFirstByMemberIdAndStatusOrderByEndDateDesc(member.getId(), "active").isPresent();
+        if (!hasActive)
+            throw new IllegalArgumentException("Necesitas una membresía activa para inscribirte en clases");
+
+        if (classEnrollmentRepo.existsByClassIdAndMemberId(classId, member.getId()))
+            throw new IllegalArgumentException("Ya estás inscrito en esta clase");
+
+        GymClass gc = classRepo.findByIdAndShopId(classId, shopId)
+                .orElseThrow(() -> new IllegalArgumentException("Clase no encontrada"));
+        if (gc.getMaxCapacity() != null && classEnrollmentRepo.countByClassId(classId) >= gc.getMaxCapacity())
+            throw new IllegalArgumentException("La clase está llena (capacidad: " + gc.getMaxCapacity() + ")");
+
+        GymClassEnrollment e = new GymClassEnrollment();
+        e.setClassId(classId);
+        e.setMemberId(member.getId());
+        e.setShopId(shopId);
+        classEnrollmentRepo.save(e);
+    }
+
+    /** Cliente cancela su inscripción en una clase. */
+    @Transactional
+    public void selfUnenrollFromClass(String userId, String shopId, Long classId) {
+        findMemberByUserId(userId, shopId).ifPresent(member ->
+            classEnrollmentRepo.findByClassIdAndMemberId(classId, member.getId())
+                    .ifPresent(classEnrollmentRepo::delete)
+        );
     }
 
     // ─── STATS ────────────────────────────────────────────────────────────────
